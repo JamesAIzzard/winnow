@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from winnow.exceptions import ParseFailedError
+from winnow.exceptions import ModelDeclinedError, ParseFailedError
 from winnow.parser.categorical import LiteralParser
 
 
@@ -61,15 +61,14 @@ class TestLiteralParser:
 
         assert "Not a valid option" in exc_info.value.reason
 
-    def test_returns_none_for_decline(self) -> None:
-        """Verify parser returns None for decline keywords."""
+    def test_raises_for_decline(self) -> None:
+        """Verify parser raises ModelDeclinedError for decline keywords."""
         parser: LiteralParser[str] = LiteralParser(
             frozenset({"apple", "banana", "cherry"})
         )
 
-        result = parser(response="DECLINE")
-
-        assert result is None
+        with pytest.raises(ModelDeclinedError):
+            parser(response="DECLINE")
 
     def test_works_with_non_string_options(self) -> None:
         """Verify parser works with non-string options."""

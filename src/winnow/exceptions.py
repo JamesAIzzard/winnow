@@ -24,3 +24,11 @@ class EstimationFailedError(WinnowError):
     def __init__(self, *, question_uid: str) -> None:
         self.question_uid = question_uid
         super().__init__(f"Failed to estimate '{question_uid}': no valid samples collected")
+
+
+class ModelDeclinedError(WinnowError):
+    """Raised when the model explicitly declines to answer."""
+
+    def __init__(self, *, response: str) -> None:
+        self.response = response
+        super().__init__(f"Model declined to answer: {response!r}")

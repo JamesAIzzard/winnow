@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from winnow.exceptions import ParseFailedError
+from winnow.exceptions import ModelDeclinedError, ParseFailedError
 from winnow.parser.numerical import FloatParser
 
 
@@ -64,13 +64,12 @@ class TestFloatParser:
 
         assert "Could not extract number" in exc_info.value.reason
 
-    def test_returns_none_for_decline(self) -> None:
-        """Verify parser returns None for decline keywords."""
+    def test_raises_for_decline(self) -> None:
+        """Verify parser raises ModelDeclinedError for decline keywords."""
         parser = FloatParser()
 
-        result = parser(response="DECLINE")
-
-        assert result is None
+        with pytest.raises(ModelDeclinedError):
+            parser(response="DECLINE")
 
 
 class TestFloatParserWithUnitConversion:

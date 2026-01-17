@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from winnow.estimator.boolean import BooleanEstimator
 
 if TYPE_CHECKING:
@@ -35,18 +37,20 @@ class TestBooleanEstimatorEstimate:
 
         assert result is False
 
-    def test_returns_false_for_exact_tie(
+    def test_returns_first_seen_for_exact_tie(
         self, make_state: Callable[..., SampleState[bool]]
     ) -> None:
-        """Verify compute_estimate returns False for exact 50/50 split."""
+        """Verify compute_estimate returns the first-seen value for exact tie.
+
+        Counter.most_common returns items in insertion order when tied.
+        """
         estimator = BooleanEstimator()
 
-        # 50% True is not > 50%, so returns False
         result = estimator.compute_estimate(
             state=make_state([True, True, False, False])
         )
 
-        assert result is False
+        assert result is True
 
 
 class TestBooleanEstimatorConfidence:
@@ -84,18 +88,33 @@ class TestBooleanEstimatorConfidence:
 
         assert confidence == 0.0
 
+    def test_zero_confidence_for_even_split(
+        self, make_state: Callable[..., SampleState[bool]]
+    ) -> None:
+        """Verify zero confidence for 50/50 split (random chance baseline)."""
+        estimator = BooleanEstimator()
+
+        confidence = estimator.compute_confidence(
+            state=make_state([True, True, False, False]), estimate=True
+        )
+
+        assert confidence == 0.0
+
     def test_partial_confidence_for_mixed_samples(
         self, make_state: Callable[..., SampleState[bool]]
     ) -> None:
-        """Verify partial confidence for mixed samples."""
+        """Verify partial confidence for mixed samples.
+
+        With 3/5 agreement (60%), normalised confidence is:
+        (0.6 - 0.5) / (1.0 - 0.5) = 0.1 / 0.5 = 0.2
+        """
         estimator = BooleanEstimator()
 
-        # 3 out of 5 agree with estimate
         confidence = estimator.compute_confidence(
             state=make_state([True, True, True, False, False]), estimate=True
         )
 
-        assert confidence == 0.6
+        assert confidence == pytest.approx(0.2)
 
     def test_confidence_in_valid_range(
         self, make_state: Callable[..., SampleState[bool]]

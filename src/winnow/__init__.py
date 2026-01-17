@@ -30,5 +30,6 @@ from winnow.stopping import StoppingCriterion as StoppingCriterion
 
 # Exceptions
 from winnow.exceptions import EstimationFailedError as EstimationFailedError
+from winnow.exceptions import ModelDeclinedError as ModelDeclinedError
 from winnow.exceptions import ParseFailedError as ParseFailedError
 from winnow.exceptions import WinnowError as WinnowError

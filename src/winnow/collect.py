@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
 
-from winnow.exceptions import EstimationFailedError, ParseFailedError
+from winnow.config import default_config
+from winnow.exceptions import EstimationFailedError, ModelDeclinedError, ParseFailedError
 from winnow.types import Estimate, SampleState
 
 if TYPE_CHECKING:
@@ -40,21 +41,27 @@ async def collect(
         if question is None:
             break
 
-        response = await query_fn(question.query)
+        prompt = _build_prompt(question.query)
+        response = await query_fn(prompt)
 
-        # TODO: Where do we handle max retry count on a parse failure? This should be
-        # a config in the config.py
         try:
             result = question.parser(response=response)
-            # TODO: Isn't a declined result now an exception?
-            if result is None:
-                states[question.uid] = _record_decline(states[question.uid])
-            else:
-                states[question.uid] = _record_sample(states[question.uid], result)
+            states[question.uid] = _record_sample(states[question.uid], result)
+        except ModelDeclinedError:
+            states[question.uid] = _record_decline(states[question.uid])
         except ParseFailedError:
             states[question.uid] = _record_parse_failure(states[question.uid])
 
     return _build_estimates(bank.questions, states)
+
+
+def _build_prompt(query: str) -> str:
+    """Build the full prompt including decline instruction."""
+    decline_instruction = (
+        f"If you have insufficient information to answer, "
+        f"respond with only: {default_config.decline_keyword}"
+    )
+    return f"{query}\n\n{decline_instruction}"
 
 
 def _record_sample(state: SampleState, value: object) -> SampleState:

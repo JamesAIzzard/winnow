@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from winnow.config import default_config
+from winnow.exceptions import ModelDeclinedError
 
 T = TypeVar("T")
 
@@ -15,19 +16,18 @@ class Parser(ABC, Generic[T]):
     decline detection before delegating to `parse`.
     """
 
-    decline_keywords: frozenset[str] = default_config.decline_keywords
-
-    def __call__(self, *, response: str) -> T | None:
+    def __call__(self, *, response: str) -> T:
         """Parse a response string.
 
-        Returns the parsed value, or None if the model declined to answer.
+        Returns the parsed value.
 
         Raises:
+            ModelDeclinedError: If the model declined to answer.
             ParseFailedError: If the response cannot be parsed.
         """
         normalised = response.strip().upper()
-        if any(keyword in normalised for keyword in self.decline_keywords):
-            return None
+        if normalised == default_config.decline_keyword:
+            raise ModelDeclinedError(response=response)
         return self.parse(response)
 
     @abstractmethod
