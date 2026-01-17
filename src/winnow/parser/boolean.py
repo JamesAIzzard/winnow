@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from winnow.parser.base import Parser, ParserError
+from winnow.exceptions import ParseFailedError
+from winnow.parser.base import Parser
 
 
 class BooleanParser(Parser[bool]):
@@ -13,11 +14,11 @@ class BooleanParser(Parser[bool]):
         """Parse a boolean from the response.
 
         Raises:
-            ParserError: If the response is not recognisable as a boolean.
+            ParseFailedError: If the response is not recognisable as a boolean.
         """
         normalised = response.strip().lower()
         if normalised in self.truthy:
             return True
         if normalised in self.falsy:
             return False
-        raise ParserError(response=response, reason="Could not parse as boolean")
+        raise ParseFailedError(response=response, reason="Could not parse as boolean")

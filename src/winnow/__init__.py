@@ -19,7 +19,6 @@ from winnow.parser import BooleanParser as BooleanParser
 from winnow.parser import FloatParser as FloatParser
 from winnow.parser import LiteralParser as LiteralParser
 from winnow.parser import Parser as Parser
-from winnow.parser import ParserError as ParserError
 
 # Estimator package
 from winnow.estimator import BooleanEstimator as BooleanEstimator

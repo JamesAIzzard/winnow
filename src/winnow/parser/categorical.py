@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
-from winnow.parser.base import Parser, ParserError
+from winnow.exceptions import ParseFailedError
+from winnow.parser.base import Parser
 
 T = TypeVar("T")
 
@@ -35,11 +36,11 @@ class LiteralParser(Parser[T], Generic[T]):
         """Parse the response as one of the known options.
 
         Raises:
-            ParserError: If the response does not match any valid option.
+            ParseFailedError: If the response does not match any valid option.
         """
         key = response.strip() if self._case_sensitive else response.strip().lower()
         if key not in self._lookup:
-            raise ParserError(
+            raise ParseFailedError(
                 response=response,
                 reason=f"Not a valid option. Expected one of: {self._options}",
             )

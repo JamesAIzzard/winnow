@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any as AnyType
 
 from winnow.stopping.base import StoppingCriterion
 
@@ -21,8 +21,8 @@ class All(StoppingCriterion):
 
     def should_stop(
         self,
-        state: SampleState[object],
-        estimator: ConsensusEstimator[object],
+        state: SampleState[AnyType],
+        estimator: ConsensusEstimator[AnyType],
     ) -> bool:
         """All criteria must agree to stop."""
         return all(c.should_stop(state, estimator) for c in self.criteria)
@@ -39,8 +39,8 @@ class Any(StoppingCriterion):
 
     def should_stop(
         self,
-        state: SampleState[object],
-        estimator: ConsensusEstimator[object],
+        state: SampleState[AnyType],
+        estimator: ConsensusEstimator[AnyType],
     ) -> bool:
         """Any criterion can trigger a stop."""
         return any(c.should_stop(state, estimator) for c in self.criteria)

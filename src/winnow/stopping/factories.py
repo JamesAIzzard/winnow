@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from winnow.config import default_config
 from winnow.stopping.base import StoppingCriterion
 from winnow.stopping.primitives import (
     ConfidenceReached,
@@ -12,10 +13,10 @@ from winnow.stopping.primitives import (
 
 def standard_stopping(
     *,
-    min_samples: int = 5,
-    confidence: float = 0.90,
-    max_queries: int = 20,
-    max_consecutive_declines: int = 5,
+    min_samples: int = default_config.standard_min_samples,
+    confidence: float = default_config.standard_confidence,
+    max_queries: int = default_config.standard_max_queries,
+    max_consecutive_declines: int = default_config.standard_max_consecutive_declines,
 ) -> StoppingCriterion:
     """Standard stopping criterion for numerical fields.
 
@@ -33,10 +34,10 @@ def standard_stopping(
 
 def categorical_stopping(
     *,
-    unanimous_after: int = 3,
-    min_samples: int = 5,
-    confidence: float = 0.85,
-    max_queries: int = 15,
+    unanimous_after: int = default_config.categorical_unanimous_after,
+    min_samples: int = default_config.categorical_min_samples,
+    confidence: float = default_config.categorical_confidence,
+    max_queries: int = default_config.categorical_max_queries,
 ) -> StoppingCriterion:
     """Stopping criterion for categorical fields with early unanimous exit.
 
@@ -54,10 +55,10 @@ def categorical_stopping(
 
 def relaxed_stopping(
     *,
-    min_samples: int = 5,
-    confidence: float = 0.75,
-    max_queries: int = 15,
-    max_consecutive_declines: int = 3,
+    min_samples: int = default_config.relaxed_min_samples,
+    confidence: float = default_config.relaxed_confidence,
+    max_queries: int = default_config.relaxed_max_queries,
+    max_consecutive_declines: int = default_config.relaxed_max_consecutive_declines,
 ) -> StoppingCriterion:
     """Relaxed criterion for inherently variable data (e.g., trace nutrients).
 

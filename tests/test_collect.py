@@ -106,7 +106,7 @@ class TestCollectMultipleQuestions:
 class TestCollectDeclineHandling:
     def test_handles_declines(self) -> None:
         """Verify collect handles decline responses correctly."""
-        responses = iter(["31", "UNKNOWN", "31", "UNKNOWN", "31"])
+        responses = iter(["31", "DECLINE", "31", "DECLINE", "31"])
 
         async def query_fn(prompt: str) -> str:
             return next(responses)
@@ -128,7 +128,7 @@ class TestCollectDeclineHandling:
 
     def test_insufficient_data_when_all_declines(self) -> None:
         """Verify INSUFFICIENT_DATA archetype when all responses are declines."""
-        responses = iter(["UNKNOWN"] * 10)
+        responses = iter(["DECLINE"] * 10)
 
         async def query_fn(prompt: str) -> str:
             return next(responses)
@@ -204,7 +204,7 @@ class TestCollectConfidence:
     def test_confidence_penalised_by_declines(self) -> None:
         """Verify confidence is reduced when there are many declines."""
         # 3 successful samples, 3 declines
-        responses = iter(["31", "UNKNOWN", "31", "UNKNOWN", "31", "UNKNOWN"])
+        responses = iter(["31", "DECLINE", "31", "DECLINE", "31", "DECLINE"])
 
         async def query_fn(prompt: str) -> str:
             return next(responses)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -29,18 +29,18 @@ class Question(Generic[T]):
 class QuestionBank:
     """A collection of questions to be answered."""
 
-    def __init__(self, questions: Sequence[Question[object]]) -> None:
+    def __init__(self, questions: Sequence[Question[Any]]) -> None:
         self._questions = list(questions)
 
     @property
-    def questions(self) -> list[Question[object]]:
+    def questions(self) -> list[Question[Any]]:
         """The questions in this bank."""
         return self._questions
 
     def select_next(
         self,
-        states: dict[str, SampleState[object]],
-    ) -> Question[object] | None:
+        states: dict[str, SampleState[Any]],
+    ) -> Question[Any] | None:
         """Select the next question to ask.
 
         Returns an incomplete question at random, or None if all complete.

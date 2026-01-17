@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from winnow.parser.base import Parser, ParserError
+from winnow.exceptions import ParseFailedError
+from winnow.parser.base import Parser
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,16 +33,16 @@ class FloatParser(Parser[float]):
         """Parse a floating-point number from the response.
 
         Raises:
-            ParserError: If no number can be extracted.
+            ParseFailedError: If no number can be extracted.
         """
         match = re.search(r"(-?[\d.]+)\s*(\w*)", response.strip())
         if not match:
-            raise ParserError(response=response, reason="Could not extract number")
+            raise ParseFailedError(response=response, reason="Could not extract number")
 
         try:
             value = float(match.group(1))
         except ValueError:
-            raise ParserError(response=response, reason="Could not parse as float")
+            raise ParseFailedError(response=response, reason="Could not parse as float")
 
         unit = match.group(2).strip()
         if unit and self._unit_conversion is not None:

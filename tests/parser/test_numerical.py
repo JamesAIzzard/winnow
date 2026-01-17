@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from winnow.parser.base import ParserError
+from winnow.exceptions import ParseFailedError
 from winnow.parser.numerical import FloatParser
 
 
@@ -56,10 +56,10 @@ class TestFloatParser:
         assert result == 50.0
 
     def test_raises_for_non_numeric(self) -> None:
-        """Verify parser raises ParserError for non-numeric input."""
+        """Verify parser raises ParseFailedError for non-numeric input."""
         parser = FloatParser()
 
-        with pytest.raises(ParserError) as exc_info:
+        with pytest.raises(ParseFailedError) as exc_info:
             parser(response="hello")
 
         assert "Could not extract number" in exc_info.value.reason
@@ -68,7 +68,7 @@ class TestFloatParser:
         """Verify parser returns None for decline keywords."""
         parser = FloatParser()
 
-        result = parser(response="UNKNOWN")
+        result = parser(response="DECLINE")
 
         assert result is None
 

@@ -7,7 +7,9 @@
       "Bash(poetry run mypy:*)",
       "Bash(poetry install:*)",
       "Bash(poetry run ruff:*)",
-      "Bash(poetry run pytest:*)"
+      "Bash(poetry run pytest:*)",
+      "Bash(cd:*)",
+      "Bash(Set-Location c:UsersJamesDocumentswinnow)"
     ]
   }
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from winnow.config import default_config
 from winnow.stopping.base import StoppingCriterion
 
 if TYPE_CHECKING:
@@ -78,7 +79,7 @@ class ConsecutiveDeclines(StoppingCriterion):
 class UnanimousAgreement(StoppingCriterion):
     """Stop early if all samples agree (useful for categorical/boolean)."""
 
-    min_samples: int = 3
+    min_samples: int = default_config.unanimous_min_samples
 
     def should_stop(
         self,

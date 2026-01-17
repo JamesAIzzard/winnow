@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from winnow.parser.base import ParserError
+from winnow.exceptions import ParseFailedError
 from winnow.parser.boolean import BooleanParser
 
 
@@ -89,10 +89,10 @@ class TestBooleanParser:
         assert result is True
 
     def test_raises_for_invalid_input(self) -> None:
-        """Verify parser raises ParserError for invalid input."""
+        """Verify parser raises ParseFailedError for invalid input."""
         parser = BooleanParser()
 
-        with pytest.raises(ParserError) as exc_info:
+        with pytest.raises(ParseFailedError) as exc_info:
             parser(response="maybe")
 
         assert "Could not parse as boolean" in exc_info.value.reason
@@ -101,6 +101,6 @@ class TestBooleanParser:
         """Verify parser returns None for decline keywords."""
         parser = BooleanParser()
 
-        result = parser(response="UNKNOWN")
+        result = parser(response="DECLINE")
 
         assert result is None

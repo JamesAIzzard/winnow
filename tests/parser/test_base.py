@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-
-from winnow.parser.base import Parser, ParserError
+from winnow.exceptions import ParseFailedError
+from winnow.parser.base import Parser
 
 
 class SimpleParser(Parser[str]):
@@ -13,19 +13,11 @@ class SimpleParser(Parser[str]):
 
 
 class TestParserDeclineDetection:
-    def test_returns_none_for_unknown_keyword(self) -> None:
-        """Verify parser returns None when response contains UNKNOWN."""
+    def test_returns_none_for_decline_keyword(self) -> None:
+        """Verify parser returns None when response contains DECLINE."""
         parser = SimpleParser()
 
-        result = parser(response="UNKNOWN")
-
-        assert result is None
-
-    def test_returns_none_for_insufficient_data_keyword(self) -> None:
-        """Verify parser returns None when response contains INSUFFICIENT_DATA."""
-        parser = SimpleParser()
-
-        result = parser(response="INSUFFICIENT_DATA")
+        result = parser(response="DECLINE")
 
         assert result is None
 
@@ -33,7 +25,7 @@ class TestParserDeclineDetection:
         """Verify decline detection is case-insensitive."""
         parser = SimpleParser()
 
-        result = parser(response="Unknown")
+        result = parser(response="Decline")
 
         assert result is None
 
@@ -41,7 +33,7 @@ class TestParserDeclineDetection:
         """Verify decline detection finds keyword within text."""
         parser = SimpleParser()
 
-        result = parser(response="I am UNKNOWN about this")
+        result = parser(response="I DECLINE to answer")
 
         assert result is None
 
@@ -68,16 +60,13 @@ class TestParserCustomDeclineKeywords:
 
         assert parser(response="SKIP") is None
         assert parser(response="PASS") is None
-        assert parser(response="UNKNOWN") == "UNKNOWN"
+        assert parser(response="DECLINE") == "DECLINE"
 
 
-class TestParserError:
-    def test_parser_error_is_parse_failed_error(self) -> None:
-        """Verify ParserError is an alias for ParseFailedError."""
-        from winnow.exceptions import ParseFailedError
+class TestParseFailedError:
+    def test_parse_failed_error_attributes(self) -> None:
+        """Verify ParseFailedError stores response and reason."""
+        error = ParseFailedError(response="test", reason="failed")
 
-        error = ParserError(response="test", reason="failed")
-
-        assert isinstance(error, ParseFailedError)
         assert error.response == "test"
         assert error.reason == "failed"

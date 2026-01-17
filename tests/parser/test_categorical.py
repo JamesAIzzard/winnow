@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from winnow.parser.base import ParserError
+from winnow.exceptions import ParseFailedError
 from winnow.parser.categorical import LiteralParser
 
 
@@ -37,7 +37,7 @@ class TestLiteralParser:
         result = parser(response="Banana")
         assert result == "Banana"
 
-        with pytest.raises(ParserError):
+        with pytest.raises(ParseFailedError):
             parser(response="banana")
 
     def test_strips_whitespace(self) -> None:
@@ -51,12 +51,12 @@ class TestLiteralParser:
         assert result == "banana"
 
     def test_raises_for_invalid_option(self) -> None:
-        """Verify parser raises ParserError for invalid option."""
+        """Verify parser raises ParseFailedError for invalid option."""
         parser: LiteralParser[str] = LiteralParser(
             frozenset({"apple", "banana", "cherry"})
         )
 
-        with pytest.raises(ParserError) as exc_info:
+        with pytest.raises(ParseFailedError) as exc_info:
             parser(response="mango")
 
         assert "Not a valid option" in exc_info.value.reason
@@ -67,7 +67,7 @@ class TestLiteralParser:
             frozenset({"apple", "banana", "cherry"})
         )
 
-        result = parser(response="UNKNOWN")
+        result = parser(response="DECLINE")
 
         assert result is None
 

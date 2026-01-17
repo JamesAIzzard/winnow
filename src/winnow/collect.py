@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from winnow.config import default_config
 from winnow.exceptions import ParseFailedError
 from winnow.types import Archetype, Estimate, SampleState
 
@@ -155,11 +156,11 @@ def _classify_archetype(
 
     if threshold is not None and confidence >= threshold:
         # Met or exceeded confidence threshold
-        if len(state.samples) < 10:
+        if len(state.samples) < default_config.confident_sample_threshold:
             return Archetype.CONFIDENT
         return Archetype.ACCEPTABLE
 
-    if confidence >= 0.7:
+    if confidence >= default_config.acceptable_confidence_threshold:
         return Archetype.ACCEPTABLE
 
     return Archetype.UNCERTAIN
