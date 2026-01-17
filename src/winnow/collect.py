@@ -136,26 +136,9 @@ def _classify_archetype(
     confidence: float,
 ) -> Archetype:
     """Classify the archetype of an estimate based on convergence behaviour."""
-    # Check if we stopped due to high confidence (early stopping)
-    from winnow.stopping.primitives import ConfidenceReached
+    threshold = question.stopping_criterion.confidence_threshold
 
-    def find_confidence_threshold(criterion: object) -> float | None:
-        """Recursively find the confidence threshold in the stopping criterion."""
-        if isinstance(criterion, ConfidenceReached):
-            return criterion.threshold
-
-        # Check combinators
-        if hasattr(criterion, "criteria"):
-            for c in criterion.criteria:  # type: ignore[attr-defined]
-                result = find_confidence_threshold(c)
-                if result is not None:
-                    return result
-        return None
-
-    threshold = find_confidence_threshold(question.stopping_criterion)
-
-    if threshold is not None and confidence >= threshold:
-        # Met or exceeded confidence threshold
+    if confidence >= threshold:
         if len(state.samples) < default_config.confident_sample_threshold:
             return Archetype.CONFIDENT
         return Archetype.ACCEPTABLE

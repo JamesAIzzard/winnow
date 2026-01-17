@@ -9,7 +9,9 @@
       "Bash(poetry run ruff:*)",
       "Bash(poetry run pytest:*)",
       "Bash(cd:*)",
-      "Bash(Set-Location c:UsersJamesDocumentswinnow)"
+      "Bash(Set-Location c:UsersJamesDocumentswinnow)",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\src\\\\winnow\\\\stopping\")",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\tests\\\\stopping\")"
     ]
   }
 }

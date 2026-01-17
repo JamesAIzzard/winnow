@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
     from winnow.estimator.base import ConsensusEstimator
     from winnow.parser.base import Parser
-    from winnow.stopping.base import StoppingCriterion
+    from winnow.stopping import StoppingCriterion
     from winnow.types import SampleState
 
 T = TypeVar("T")

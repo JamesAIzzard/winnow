@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
-
 
 from winnow.collect import collect
 from winnow.estimator.boolean import BooleanEstimator
@@ -10,11 +8,8 @@ from winnow.estimator.numerical import NumericalEstimator
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
-from winnow.stopping.primitives import MaxQueries, MinSamples
+from winnow.stopping import StoppingCriterion
 from winnow.types import Archetype
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestCollectBasic:
@@ -31,7 +26,7 @@ class TestCollectBasic:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(5),
+                stopping_criterion=StoppingCriterion(min_samples=5, max_queries=100),
             ),
         ])
 
@@ -54,7 +49,9 @@ class TestCollectBasic:
                 query="Is this vegan?",
                 parser=BooleanParser(),
                 estimator=BooleanEstimator(),
-                stopping_criterion=MinSamples(5),
+                stopping_criterion=StoppingCriterion(
+                    min_samples=5, max_queries=5, confidence_threshold=1.0
+                ),
             ),
         ])
 
@@ -84,14 +81,14 @@ class TestCollectMultipleQuestions:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(3),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
             ),
             Question(
                 uid="fat",
                 query="How many grams of fat?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(3),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
             ),
         ])
 
@@ -117,7 +114,7 @@ class TestCollectDeclineHandling:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(3),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
             ),
         ])
 
@@ -139,7 +136,7 @@ class TestCollectDeclineHandling:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MaxQueries(5),
+                stopping_criterion=StoppingCriterion(min_samples=1, max_queries=5),
             ),
         ])
 
@@ -164,7 +161,7 @@ class TestCollectParseFailures:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(3),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
             ),
         ])
 
@@ -179,11 +176,13 @@ class TestCollectStoppingCriteria:
     def test_stops_at_max_queries(self) -> None:
         """Verify collect stops when MaxQueries is reached."""
         call_count = 0
+        # Use varied responses to prevent early confidence stopping
+        values = iter(["10", "20", "30", "40", "50"])
 
         async def query_fn(prompt: str) -> str:
             nonlocal call_count
             call_count += 1
-            return "31"
+            return next(values)
 
         questions = QuestionBank([
             Question(
@@ -191,7 +190,9 @@ class TestCollectStoppingCriteria:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MaxQueries(5),
+                stopping_criterion=StoppingCriterion(
+                    min_samples=1, max_queries=5, confidence_threshold=0.99
+                ),
             ),
         ])
 
@@ -215,7 +216,7 @@ class TestCollectConfidence:
                 query="How many grams of protein?",
                 parser=FloatParser(),
                 estimator=NumericalEstimator(),
-                stopping_criterion=MinSamples(3),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
             ),
         ])
 
