@@ -1,0 +1,29 @@
+[tool.poetry]
+name        = "winnow"
+version     = "0.1.0"
+description = "Statistically robust data extraction from large language models."
+authors     = ["James Izzard <jamesaizzard@gmail.com>"]
+readme      = "README.md"
+packages    = [ { include = "winnow", from = "src" } ]
+
+[tool.poetry.dependencies]
+python              = ">=3.13,<4.0.0"
+rich                = "^14.0.0"
+openai              = ">=1.91.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest       = "^8.3.5"
+pytest-cov   = "^6.1.1"
+pytest-xdist = "^3.6"
+debugpy      = "^1.8.0"
+ruff = "^0.12.8"
+mypy = "^1.17.1"
+
+[build-system]
+requires      = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
