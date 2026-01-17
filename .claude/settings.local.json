@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(poetry run mypy:*)",
+      "Bash(poetry install:*)",
+      "Bash(poetry run ruff:*)",
+      "Bash(poetry run pytest:*)"
+    ]
+  }
+}
