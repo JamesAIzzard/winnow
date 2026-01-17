@@ -30,12 +30,34 @@ class QuestionBank:
     """A collection of questions to be answered."""
 
     def __init__(self, questions: Sequence[Question]) -> None:
-        self._questions = list(questions)
+        self._questions = {q.uid: q for q in questions}
+        self._current_question_uid: str | None = None
 
     @property
-    def questions(self) -> list[Question]:
-        """The questions in this bank."""
+    def questions(self) -> dict[str, Question]:
+        """The questions in this bank, keyed by uid."""
         return self._questions
+
+    @property
+    def current_question_uid(self) -> str | None:
+        """The uid of the current question being asked, or None if complete."""
+        return self._current_question_uid
+
+    def num_pending_questions(self, states: dict[str, SampleState]) -> int:
+        """Count questions that have not yet reached their stopping criterion."""
+        return sum(
+            1
+            for q in self._questions.values()
+            if not q.stopping_criterion.should_stop(states[q.uid], q.estimator)
+        )
+
+    def num_estimated_questions(self, states: dict[str, SampleState]) -> int:
+        """Count questions that have reached their stopping criterion."""
+        return sum(
+            1
+            for q in self._questions.values()
+            if q.stopping_criterion.should_stop(states[q.uid], q.estimator)
+        )
 
     def select_next(
         self,
@@ -48,11 +70,14 @@ class QuestionBank:
         """
         incomplete = [
             q
-            for q in self._questions
+            for q in self._questions.values()
             if not q.stopping_criterion.should_stop(states[q.uid], q.estimator)
         ]
 
         if not incomplete:
+            self._current_question_uid = None
             return None
 
-        return random.choice(incomplete)
+        selected = random.choice(incomplete)
+        self._current_question_uid = selected.uid
+        return selected

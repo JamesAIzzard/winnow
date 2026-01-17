@@ -32,7 +32,7 @@ async def collect(
             parse_failure_count=0,
             consecutive_declines=0,
         )
-        for q in bank.questions
+        for q in bank.questions.values()
     }
 
     while True:
@@ -88,13 +88,13 @@ def _record_parse_failure(state: SampleState) -> SampleState:
 
 
 def _build_estimates(
-    questions: list[Question],
+    questions: dict[str, Question],
     states: dict[str, SampleState],
 ) -> dict[str, Estimate]:
     """Build final estimates from collected states."""
     estimates: dict[str, Estimate] = {}
 
-    for q in questions:
+    for q in questions.values():
         state = states[q.uid]
 
         if len(state.samples) == 0:
