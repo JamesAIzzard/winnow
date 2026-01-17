@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from winnow.types import SampleState
 
 
 class BooleanEstimator:
@@ -13,16 +13,17 @@ class BooleanEstimator:
     for confidence.
     """
 
-    def compute_estimate(self, *, samples: Sequence[bool]) -> bool:
+    def compute_estimate(self, *, state: SampleState[bool]) -> bool:
         """Return True if more than half of samples are True."""
-        return sum(samples) > len(samples) / 2
+        return sum(state.samples) > len(state.samples) / 2
 
-    def compute_confidence(self, *, samples: Sequence[bool], estimate: bool) -> float:
+    def compute_confidence(self, *, state: SampleState[bool], estimate: bool) -> float:
         """Compute confidence based on agreement proportion.
 
         For boolean values, the raw agreement proportion is intuitive
         as the confidence measure.
         """
+        samples = state.samples
         if len(samples) == 0:
             return 0.0
 

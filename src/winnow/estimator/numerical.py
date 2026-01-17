@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from winnow._util import _mad, _median
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from winnow.types import SampleState
 
 
 class NumericalEstimator:
@@ -15,11 +15,11 @@ class NumericalEstimator:
     for confidence calculation.
     """
 
-    def compute_estimate(self, *, samples: Sequence[float]) -> float:
+    def compute_estimate(self, *, state: SampleState[float]) -> float:
         """Return the median of the samples."""
-        return _median(samples)
+        return _median(state.samples)
 
-    def compute_confidence(self, *, samples: Sequence[float], estimate: float) -> float:
+    def compute_confidence(self, *, state: SampleState[float], estimate: float) -> float:
         """Compute confidence based on robust coefficient of variation.
 
         The confidence is calculated as 1 / (1 + robust_cv), where:
@@ -28,6 +28,7 @@ class NumericalEstimator:
         The constant 1.4826 scales MAD to be comparable to standard deviation
         for normally distributed data.
         """
+        samples = state.samples
         if len(samples) < 2:
             return 0.0
 

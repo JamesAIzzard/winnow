@@ -19,6 +19,7 @@ class WinnowConfig:
     standard_max_queries: int = 20
     standard_max_consecutive_declines: int = 5
 
+    # TODO: This is unescessary
     @property
     def decline_keywords(self) -> frozenset[str]:
         """Return decline keyword as a frozenset for Parser compatibility."""

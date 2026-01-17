@@ -44,10 +44,7 @@ class StoppingCriterion:
         if len(state.samples) < self.min_samples:
             return False
 
-        estimate = estimator.compute_estimate(samples=state.samples)
-        
-        confidence = estimator.compute_confidence(
-            samples=state.samples, estimate=estimate
-        )
-        
+        estimate = estimator.compute_estimate(state=state)
+        confidence = estimator.compute_confidence(state=state, estimate=estimate)
+
         return confidence >= self.confidence_threshold

@@ -120,9 +120,8 @@ class TestCollectDeclineHandling:
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert results["protein"].value is not None
-        # Confidence should be penalised due to declines
-        assert results["protein"].confidence < 1.0
+        # Declines are skipped but valid samples still produce an estimate
+        assert results["protein"].value == 31.0
 
     def test_raises_when_all_declines(self) -> None:
         """Verify EstimationFailedError raised when all responses are declines."""
@@ -202,10 +201,10 @@ class TestCollectStoppingCriteria:
 
 
 class TestCollectConfidence:
-    def test_confidence_penalised_by_declines(self) -> None:
-        """Verify confidence is reduced when there are many declines."""
-        # 3 successful samples, 3 declines
-        responses = iter(["31", "DECLINE", "31", "DECLINE", "31", "DECLINE"])
+    def test_confidence_based_on_sample_agreement(self) -> None:
+        """Verify confidence is based purely on sample agreement."""
+        # 3 identical samples - should give full confidence
+        responses = iter(["31", "31", "31"])
 
         async def query_fn(prompt: str) -> str:
             return next(responses)
@@ -222,6 +221,5 @@ class TestCollectConfidence:
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        # Confidence should be penalised (raw confidence * decline_penalty)
-        # With 3 samples and 3 declines, penalty = 1 - 3/6 = 0.5
-        assert results["protein"].confidence < 1.0
+        # Identical samples should give full confidence
+        assert results["protein"].confidence == 1.0

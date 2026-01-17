@@ -11,7 +11,12 @@
       "Bash(cd:*)",
       "Bash(Set-Location c:UsersJamesDocumentswinnow)",
       "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\src\\\\winnow\\\\stopping\")",
-      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\tests\\\\stopping\")"
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\tests\\\\stopping\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\src\\\\winnow\\\\estimator\\\\_confidence.py\")",
+      "Bash(powershell -Command \"Remove-Item ''c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\src\\\\winnow\\\\estimator\\\\_confidence.py''\")",
+      "Bash(powershell -Command \"poetry run pytest -q\")",
+      "Bash(powershell -Command \"poetry run mypy .\":*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

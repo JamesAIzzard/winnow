@@ -42,8 +42,11 @@ async def collect(
 
         response = await query_fn(question.query)
 
+        # TODO: Where do we handle max retry count on a parse failure? This should be
+        # a config in the config.py
         try:
             result = question.parser(response=response)
+            # TODO: Isn't a declined result now an exception?
             if result is None:
                 states[question.uid] = _record_decline(states[question.uid])
             else:
@@ -97,18 +100,8 @@ def _build_estimates(
         if len(state.samples) == 0:
             raise EstimationFailedError(question_uid=q.uid)
 
-        value = q.estimator.compute_estimate(samples=state.samples)
-        raw_confidence = q.estimator.compute_confidence(
-            samples=state.samples, estimate=value
-        )
-
-        # Adjust confidence for decline rate
-        total_attempts = len(state.samples) + state.decline_count
-        if total_attempts > 0:
-            decline_penalty = 1.0 - (state.decline_count / total_attempts)
-        else:
-            decline_penalty = 1.0
-        confidence = raw_confidence * decline_penalty
+        value = q.estimator.compute_estimate(state=state)
+        confidence = q.estimator.compute_confidence(state=state, estimate=value)
 
         estimates[q.uid] = Estimate(value=value, confidence=confidence)
 

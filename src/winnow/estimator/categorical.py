@@ -4,7 +4,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from winnow.types import SampleState
 
 T = TypeVar("T")
 
@@ -23,12 +23,12 @@ class CategoricalEstimator(Generic[T]):
         """
         self._valid_options = valid_options
 
-    def compute_estimate(self, *, samples: Sequence[T]) -> T:
+    def compute_estimate(self, *, state: SampleState[T]) -> T:
         """Return the mode (most common value) of the samples."""
-        counts: Counter[T] = Counter(samples)
+        counts: Counter[T] = Counter(state.samples)
         return counts.most_common(1)[0][0]
 
-    def compute_confidence(self, *, samples: Sequence[T], estimate: T) -> float:
+    def compute_confidence(self, *, state: SampleState[T], estimate: T) -> float:
         """Compute confidence based on normalised agreement.
 
         The confidence is normalised against random guessing:
@@ -37,6 +37,7 @@ class CategoricalEstimator(Generic[T]):
         Where agreement is the proportion matching the mode and n is the
         number of valid options.
         """
+        samples = state.samples
         if len(samples) == 0:
             return 0.0
 
