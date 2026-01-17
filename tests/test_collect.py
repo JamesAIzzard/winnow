@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from winnow.collect import collect
+from winnow.exceptions import EstimationFailedError
 from winnow.estimator.boolean import BooleanEstimator
 from winnow.estimator.numerical import NumericalEstimator
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
-from winnow.types import Archetype
 
 
 class TestCollectBasic:
@@ -30,11 +32,10 @@ class TestCollectBasic:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert "protein" in results
         assert results["protein"].value == 31.0
-        assert results["protein"].sample_count == 5
 
     def test_collects_boolean_samples(self) -> None:
         """Verify collect gathers boolean samples and produces estimate."""
@@ -55,11 +56,10 @@ class TestCollectBasic:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert "is_vegan" in results
         assert results["is_vegan"].value is True
-        assert results["is_vegan"].sample_count == 5
 
 
 class TestCollectMultipleQuestions:
@@ -92,12 +92,12 @@ class TestCollectMultipleQuestions:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert "protein" in results
         assert "fat" in results
-        assert results["protein"].sample_count == 3
-        assert results["fat"].sample_count == 3
+        assert results["protein"].value is not None
+        assert results["fat"].value is not None
 
 
 class TestCollectDeclineHandling:
@@ -118,13 +118,14 @@ class TestCollectDeclineHandling:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert results["protein"].sample_count == 3
-        assert results["protein"].decline_count == 2
+        assert results["protein"].value is not None
+        # Confidence should be penalised due to declines
+        assert results["protein"].confidence < 1.0
 
-    def test_insufficient_data_when_all_declines(self) -> None:
-        """Verify INSUFFICIENT_DATA archetype when all responses are declines."""
+    def test_raises_when_all_declines(self) -> None:
+        """Verify EstimationFailedError raised when all responses are declines."""
         responses = iter(["DECLINE"] * 10)
 
         async def query_fn(prompt: str) -> str:
@@ -140,11 +141,10 @@ class TestCollectDeclineHandling:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        with pytest.raises(EstimationFailedError) as exc_info:
+            asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert results["protein"].archetype == Archetype.INSUFFICIENT_DATA
-        assert results["protein"].value is None
-        assert results["protein"].sample_count == 0
+        assert exc_info.value.question_uid == "protein"
 
 
 class TestCollectParseFailures:
@@ -165,11 +165,11 @@ class TestCollectParseFailures:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert results["protein"].sample_count == 3
-        # Parse failures don't affect decline count
-        assert results["protein"].decline_count == 0
+        assert results["protein"].value is not None
+        # Parse failures don't penalise confidence (only declines do)
+        assert results["protein"].confidence > 0.0
 
 
 class TestCollectStoppingCriteria:
@@ -196,7 +196,7 @@ class TestCollectStoppingCriteria:
             ),
         ])
 
-        asyncio.run(collect(questions, query_fn=query_fn))
+        asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert call_count == 5
 
@@ -220,7 +220,7 @@ class TestCollectConfidence:
             ),
         ])
 
-        results = asyncio.run(collect(questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         # Confidence should be penalised (raw confidence * decline_penalty)
         # With 3 samples and 3 declines, penalty = 1 - 3/6 = 0.5

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class ConsensusEstimator(Protocol[T]):
+class Estimator(Protocol[T]):
     """Strategy for deriving consensus from repeated samples."""
 
     def compute_estimate(self, *, samples: Sequence[T]) -> T:

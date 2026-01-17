@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from winnow.config import default_config
 
 if TYPE_CHECKING:
-    from winnow.estimator.base import ConsensusEstimator
+    from winnow.estimator.base import Estimator
     from winnow.types import SampleState
 
 
@@ -27,8 +27,8 @@ class StoppingCriterion:
 
     def should_stop(
         self,
-        state: SampleState[Any],
-        estimator: ConsensusEstimator[Any],
+        state: SampleState,
+        estimator: Estimator,
     ) -> bool:
         """Return True if sampling should stop."""
         total_queries = (
@@ -45,7 +45,9 @@ class StoppingCriterion:
             return False
 
         estimate = estimator.compute_estimate(samples=state.samples)
+        
         confidence = estimator.compute_confidence(
             samples=state.samples, estimate=estimate
         )
+        
         return confidence >= self.confidence_threshold

@@ -1,19 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum, auto
 from typing import Generic, TypeVar
 
 T_co = TypeVar("T_co", covariant=True)
-
-
-class Archetype(Enum):
-    """Classification of sampling convergence behaviour."""
-
-    CONFIDENT = auto()
-    ACCEPTABLE = auto()
-    UNCERTAIN = auto()
-    INSUFFICIENT_DATA = auto()
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -32,12 +23,8 @@ class SampleState(Generic[T_co]):
 
 
 @dataclass(frozen=True)
-class Estimate(Generic[T_co]):
+class Estimate(Generic[T]):
     """A value estimated from repeated LLM queries."""
 
-    value: T_co | None
+    value: T
     confidence: float
-    archetype: Archetype
-    sample_count: int
-    decline_count: int
-    samples: tuple[T_co, ...]

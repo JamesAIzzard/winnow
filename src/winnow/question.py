@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from winnow.estimator.base import ConsensusEstimator
+    from winnow.estimator.base import Estimator
     from winnow.parser.base import Parser
     from winnow.stopping import StoppingCriterion
     from winnow.types import SampleState
@@ -22,25 +22,25 @@ class Question(Generic[T]):
     uid: str
     query: str
     parser: Parser[T]
-    estimator: ConsensusEstimator[T]
+    estimator: Estimator[T]
     stopping_criterion: StoppingCriterion
 
 
 class QuestionBank:
     """A collection of questions to be answered."""
 
-    def __init__(self, questions: Sequence[Question[Any]]) -> None:
+    def __init__(self, questions: Sequence[Question]) -> None:
         self._questions = list(questions)
 
     @property
-    def questions(self) -> list[Question[Any]]:
+    def questions(self) -> list[Question]:
         """The questions in this bank."""
         return self._questions
 
     def select_next(
         self,
-        states: dict[str, SampleState[Any]],
-    ) -> Question[Any] | None:
+        states: dict[str, SampleState],
+    ) -> Question | None:
         """Select the next question to ask.
 
         Returns an incomplete question at random, or None if all complete.

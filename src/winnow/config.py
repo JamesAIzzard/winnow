@@ -19,10 +19,6 @@ class WinnowConfig:
     standard_max_queries: int = 20
     standard_max_consecutive_declines: int = 5
 
-    # Archetype classification thresholds
-    confident_sample_threshold: int = 10
-    acceptable_confidence_threshold: float = 0.7
-
     @property
     def decline_keywords(self) -> frozenset[str]:
         """Return decline keyword as a frozenset for Parser compatibility."""
