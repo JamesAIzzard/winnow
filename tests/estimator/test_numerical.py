@@ -1,12 +1,10 @@
 from __future__ import annotations
-
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from winnow.estimator.numerical import NumericalEstimator
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from winnow.types import SampleState
 
 

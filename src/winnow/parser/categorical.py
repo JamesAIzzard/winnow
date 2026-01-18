@@ -40,8 +40,5 @@ class LiteralParser(Parser[T], Generic[T]):
         """
         key = response.strip() if self._case_sensitive else response.strip().lower()
         if key not in self._lookup:
-            raise ParseFailedError(
-                response=response,
-                reason=f"Not a valid option. Expected one of: {self._options}",
-            )
+            raise ParseFailedError(response=response)
         return self._lookup[key]

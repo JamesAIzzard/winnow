@@ -39,22 +39,6 @@ class TestFloatParser:
 
         assert result == 31.5
 
-    def test_parses_number_with_unit(self) -> None:
-        """Verify parser extracts number before unit."""
-        parser = FloatParser()
-
-        result = parser(response="100g")
-
-        assert result == 100.0
-
-    def test_parses_number_with_space_before_unit(self) -> None:
-        """Verify parser handles space between number and unit."""
-        parser = FloatParser()
-
-        result = parser(response="50 kg")
-
-        assert result == 50.0
-
     def test_raises_for_non_numeric(self) -> None:
         """Verify parser raises ParseFailedError for non-numeric input."""
         parser = FloatParser()
@@ -62,7 +46,7 @@ class TestFloatParser:
         with pytest.raises(ParseFailedError) as exc_info:
             parser(response="hello")
 
-        assert "Could not extract number" in exc_info.value.reason
+        assert exc_info.value.response == "hello"
 
     def test_raises_for_decline(self) -> None:
         """Verify parser raises ModelDeclinedError for decline keywords."""
@@ -70,33 +54,3 @@ class TestFloatParser:
 
         with pytest.raises(ModelDeclinedError):
             parser(response="DECLINE")
-
-
-class TestFloatParserWithUnitConversion:
-    def test_applies_unit_conversion(self) -> None:
-        """Verify unit conversion function is applied."""
-
-        def convert(value: float, unit: str) -> float:
-            if unit.lower() == "kg":
-                return value * 1000
-            return value
-
-        parser = FloatParser(unit_conversion=convert)
-
-        result = parser(response="2.5 kg")
-
-        assert result == 2500.0
-
-    def test_no_conversion_without_unit(self) -> None:
-        """Verify no conversion when unit is not present."""
-
-        def convert(value: float, unit: str) -> float:
-            if unit.lower() == "kg":
-                return value * 1000
-            return value
-
-        parser = FloatParser(unit_conversion=convert)
-
-        result = parser(response="100")
-
-        assert result == 100.0

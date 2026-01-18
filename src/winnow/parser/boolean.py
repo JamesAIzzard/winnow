@@ -21,4 +21,4 @@ class BooleanParser(Parser[bool]):
             return True
         if normalised in self.falsy:
             return False
-        raise ParseFailedError(response=response, reason="Could not parse as boolean")
+        raise ParseFailedError(response=response)

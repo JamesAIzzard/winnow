@@ -12,10 +12,9 @@ class WinnowError(Exception):
 class ParseFailedError(WinnowError):
     """Raised when a parser fails to parse a response."""
 
-    def __init__(self, *, response: str, reason: str) -> None:
+    def __init__(self, *, response: str) -> None:
         self.response = response
-        self.reason = reason
-        super().__init__(f"{reason}: {response!r}")
+        super().__init__(f"Could not parse response: {response!r}")
 
 
 class EstimationFailedError(WinnowError):

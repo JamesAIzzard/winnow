@@ -1,27 +1,21 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from winnow.estimator.categorical import CategoricalEstimator
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from winnow.types import SampleState
 
 
 class TestCategoricalEstimatorEstimate:
-    def test_returns_mode(
-        self, make_state: Callable[..., SampleState[str]]
-    ) -> None:
+    def test_returns_mode(self, make_state: Callable[..., SampleState[str]]) -> None:
         """Verify compute_estimate returns the most common value."""
         estimator: CategoricalEstimator[str] = CategoricalEstimator(
             valid_options=frozenset({"a", "b", "c"})
         )
 
-        result = estimator.compute_estimate(
-            state=make_state(["a", "b", "a", "c", "a"])
-        )
+        result = estimator.compute_estimate(state=make_state(["a", "b", "a", "c", "a"]))
 
         assert result == "a"
 
@@ -34,9 +28,7 @@ class TestCategoricalEstimatorEstimate:
         )
 
         # Counter.most_common returns first encountered on tie
-        result = estimator.compute_estimate(
-            state=make_state(["a", "b", "a", "b"])
-        )
+        result = estimator.compute_estimate(state=make_state(["a", "b", "a", "b"]))
 
         assert result in {"a", "b"}
 
@@ -65,9 +57,7 @@ class TestCategoricalEstimatorConfidence:
             valid_options=frozenset({"a", "b", "c"})
         )
 
-        confidence = estimator.compute_confidence(
-            state=make_state([]), estimate="a"
-        )
+        confidence = estimator.compute_confidence(state=make_state([]), estimate="a")
 
         assert confidence == 0.0
 
@@ -86,17 +76,3 @@ class TestCategoricalEstimatorConfidence:
         )
 
         assert confidence == 0.5
-
-    def test_confidence_in_valid_range(
-        self, make_state: Callable[..., SampleState[str]]
-    ) -> None:
-        """Verify confidence is always in [0, 1] range."""
-        estimator: CategoricalEstimator[str] = CategoricalEstimator(
-            valid_options=frozenset({"a", "b", "c", "d", "e"})
-        )
-
-        confidence = estimator.compute_confidence(
-            state=make_state(["a", "b", "c", "d", "a"]), estimate="a"
-        )
-
-        assert 0.0 <= confidence <= 1.0

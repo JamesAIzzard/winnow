@@ -1,33 +1,13 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 
 from winnow.exceptions import ParseFailedError
 from winnow.parser.base import Parser
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 
 class FloatParser(Parser[float]):
-    """Parses a floating-point number from an LLM response.
-
-    Optionally extracts a unit suffix and applies a conversion function.
-    """
-
-    def __init__(
-        self,
-        *,
-        unit_conversion: Callable[[float, str], float] | None = None,
-    ) -> None:
-        """Initialise the parser.
-
-        Args:
-            unit_conversion: Optional function that takes (value, unit_string)
-                and returns the converted value. If None, units are ignored.
-        """
-        self._unit_conversion = unit_conversion
+    """Parses a floating-point number from an LLM response."""
 
     def parse(self, response: str) -> float:
         """Parse a floating-point number from the response.
@@ -35,17 +15,11 @@ class FloatParser(Parser[float]):
         Raises:
             ParseFailedError: If no number can be extracted.
         """
-        match = re.search(r"(-?[\d.]+)\s*(\w*)", response.strip())
+        match = re.search(r"-?[\d.]+", response)
         if not match:
-            raise ParseFailedError(response=response, reason="Could not extract number")
+            raise ParseFailedError(response=response)
 
         try:
-            value = float(match.group(1))
+            return float(match.group(0))
         except ValueError:
-            raise ParseFailedError(response=response, reason="Could not parse as float")
-
-        unit = match.group(2).strip()
-        if unit and self._unit_conversion is not None:
-            value = self._unit_conversion(value, unit)
-
-        return value
+            raise ParseFailedError(response=response)

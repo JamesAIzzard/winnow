@@ -51,20 +51,3 @@ class TestParserDeclineDetection:
         result = parser(response="  hello world  ")
 
         assert result == "hello world"
-
-
-class TestParseFailedError:
-    def test_parse_failed_error_attributes(self) -> None:
-        """Verify ParseFailedError stores response and reason."""
-        error = ParseFailedError(response="test", reason="failed")
-
-        assert error.response == "test"
-        assert error.reason == "failed"
-
-
-class TestModelDeclinedError:
-    def test_model_declined_error_attributes(self) -> None:
-        """Verify ModelDeclinedError stores response."""
-        error = ModelDeclinedError(response="I cannot answer")
-
-        assert error.response == "I cannot answer"

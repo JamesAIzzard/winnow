@@ -95,7 +95,7 @@ class TestBooleanParser:
         with pytest.raises(ParseFailedError) as exc_info:
             parser(response="maybe")
 
-        assert "Could not parse as boolean" in exc_info.value.reason
+        assert exc_info.value.response == "maybe"
 
     def test_raises_for_decline(self) -> None:
         """Verify parser raises ModelDeclinedError for decline keywords."""

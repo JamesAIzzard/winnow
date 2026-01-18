@@ -59,7 +59,7 @@ class TestLiteralParser:
         with pytest.raises(ParseFailedError) as exc_info:
             parser(response="mango")
 
-        assert "Not a valid option" in exc_info.value.reason
+        assert exc_info.value.response == "mango"
 
     def test_raises_for_decline(self) -> None:
         """Verify parser raises ModelDeclinedError for decline keywords."""

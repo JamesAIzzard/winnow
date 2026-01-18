@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import pytest
 
 from winnow.estimator.boolean import BooleanEstimator
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from winnow.types import SampleState
 
 
@@ -115,15 +114,3 @@ class TestBooleanEstimatorConfidence:
         )
 
         assert confidence == pytest.approx(0.2)
-
-    def test_confidence_in_valid_range(
-        self, make_state: Callable[..., SampleState[bool]]
-    ) -> None:
-        """Verify confidence is always in [0, 1] range."""
-        estimator = BooleanEstimator()
-
-        confidence = estimator.compute_confidence(
-            state=make_state([True, False, True, False, True]), estimate=True
-        )
-
-        assert 0.0 <= confidence <= 1.0

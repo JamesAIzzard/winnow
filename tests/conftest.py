@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from winnow.types import SampleState
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -15,12 +17,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from winnow.types import SampleState  # noqa: E402
-
 
 @pytest.fixture
 def make_state():
     """Create a SampleState from a sequence of samples."""
+
     def _make_state(samples: Sequence) -> SampleState:
         return SampleState(
             samples=tuple(samples),
@@ -28,5 +29,5 @@ def make_state():
             parse_failure_count=0,
             consecutive_declines=0,
         )
-    return _make_state
 
+    return _make_state
