@@ -48,7 +48,7 @@ class QuestionBank:
         return sum(
             1
             for q in self._questions.values()
-            if not q.stopping_criterion.should_stop(states[q.uid], q.estimator)
+            if not q.stopping_criterion.should_stop(states[q.uid])
         )
 
     def num_estimated_questions(self, states: dict[str, SampleState]) -> int:
@@ -56,7 +56,7 @@ class QuestionBank:
         return sum(
             1
             for q in self._questions.values()
-            if q.stopping_criterion.should_stop(states[q.uid], q.estimator)
+            if q.stopping_criterion.should_stop(states[q.uid])
         )
 
     def select_next(
@@ -71,7 +71,7 @@ class QuestionBank:
         incomplete = [
             q
             for q in self._questions.values()
-            if not q.stopping_criterion.should_stop(states[q.uid], q.estimator)
+            if not q.stopping_criterion.should_stop(states[q.uid])
         ]
 
         if not incomplete:

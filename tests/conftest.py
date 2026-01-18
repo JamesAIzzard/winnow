@@ -28,6 +28,8 @@ def make_state():
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
+            current_estimate=None,
+            current_confidence=0.0,
         )
 
     return _make_state

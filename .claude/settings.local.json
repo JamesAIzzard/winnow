@@ -16,7 +16,9 @@
       "Bash(powershell -Command \"Remove-Item ''c:\\\\Users\\\\James\\\\Documents\\\\winnow\\\\src\\\\winnow\\\\estimator\\\\_confidence.py''\")",
       "Bash(powershell -Command \"poetry run pytest -q\")",
       "Bash(powershell -Command \"poetry run mypy .\":*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(dir)",
+      "Bash(dir:*)"
     ]
   }
 }

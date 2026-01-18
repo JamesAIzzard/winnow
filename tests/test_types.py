@@ -11,6 +11,8 @@ class TestSampleState:
             decline_count=2,
             parse_failure_count=1,
             consecutive_declines=0,
+            current_estimate=None,
+            current_confidence=0.0,
         )
 
         assert state.query_count == 6
@@ -22,6 +24,8 @@ class TestSampleState:
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
+            current_estimate=None,
+            current_confidence=0.0,
         )
 
         assert state.query_count == 0
@@ -33,6 +37,8 @@ class TestSampleState:
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
+            current_estimate=None,
+            current_confidence=0.0,
         )
 
         # Should not raise

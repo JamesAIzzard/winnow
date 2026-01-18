@@ -15,6 +15,8 @@ class SampleState(Generic[T_co]):
     decline_count: int
     parse_failure_count: int
     consecutive_declines: int
+    current_estimate: T_co | None
+    current_confidence: float
 
     @property
     def query_count(self) -> int:

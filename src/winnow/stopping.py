@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from winnow.config import default_config
 
 if TYPE_CHECKING:
-    from winnow.estimator.base import Estimator
     from winnow.types import SampleState
 
 
@@ -27,17 +26,9 @@ class StoppingCriterion:
     max_consecutive_declines: int = default_config.standard_max_consecutive_declines
     max_parse_failures: int = default_config.standard_max_parse_failures
 
-    def should_stop(
-        self,
-        state: SampleState,
-        estimator: Estimator,
-    ) -> bool:
+    def should_stop(self, state: SampleState) -> bool:
         """Return True if sampling should stop."""
-        total_queries = (
-            len(state.samples) + state.decline_count + state.parse_failure_count
-        )
-
-        if total_queries >= self.max_queries:
+        if state.query_count >= self.max_queries:
             return True
 
         if state.consecutive_declines >= self.max_consecutive_declines:
@@ -49,7 +40,4 @@ class StoppingCriterion:
         if len(state.samples) < self.min_samples:
             return False
 
-        estimate = estimator.compute_estimate(state=state)
-        confidence = estimator.compute_confidence(state=state, estimate=estimate)
-
-        return confidence >= self.confidence_threshold
+        return state.current_confidence >= self.confidence_threshold
