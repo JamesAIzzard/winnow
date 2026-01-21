@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-def _median(values: Sequence[float]) -> float:
+def median(values: Sequence[float]) -> float:
     """Compute the median of a sequence of values.
 
     Raises:
@@ -24,12 +24,12 @@ def _median(values: Sequence[float]) -> float:
     return sorted_values[mid]
 
 
-def _mad(values: Sequence[float], median: float) -> float:
-    """Compute the median absolute deviation from a given median.
+def mad(values: Sequence[float], center: float) -> float:
+    """Compute the median absolute deviation from a given center.
 
     Args:
         values: The sequence of values.
-        median: The precomputed median.
+        center: The precomputed median.
 
     Returns:
         The median absolute deviation.
@@ -40,5 +40,5 @@ def _mad(values: Sequence[float], median: float) -> float:
     if not values:
         raise ValueError("Cannot compute MAD of empty sequence")
 
-    deviations = [abs(v - median) for v in values]
-    return _median(deviations)
+    deviations = [abs(v - center) for v in values]
+    return median(deviations)

@@ -18,7 +18,8 @@
       "Bash(powershell -Command \"poetry run mypy .\":*)",
       "Bash(powershell -Command:*)",
       "Bash(dir)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git -C \"c:\\\\Users\\\\James\\\\Documents\\\\winnow\" mv src/winnow/_util.py src/winnow/util.py)"
     ]
   }
 }

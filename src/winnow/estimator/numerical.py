@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from winnow._util import _mad, _median
+from winnow.util import mad, median
 
 if TYPE_CHECKING:
     from winnow.types import SampleState
@@ -17,7 +17,7 @@ class NumericalEstimator:
 
     def compute_estimate(self, *, state: SampleState[float]) -> float:
         """Return the median of the samples."""
-        return _median(state.samples)
+        return median(state.samples)
 
     def compute_confidence(self, *, state: SampleState[float], estimate: float) -> float:
         """Compute confidence based on robust coefficient of variation.
@@ -40,7 +40,7 @@ class NumericalEstimator:
         if estimate == 0.0:
             return 0.0
 
-        mad = _mad(samples, estimate)
-        robust_cv = 1.4826 * mad / abs(estimate)
+        mad_value = mad(samples, estimate)
+        robust_cv = 1.4826 * mad_value / abs(estimate)
 
         return 1.0 / (1.0 + robust_cv)
