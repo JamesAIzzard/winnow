@@ -9,7 +9,7 @@ from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
-from winnow.types import Estimate, NeedsReview
+from winnow.types import Estimate, NeedsReview, ReviewReason
 
 
 class TestCollectBasic:
@@ -147,7 +147,7 @@ class TestCollectDeclineHandling:
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert isinstance(results["protein"], NeedsReview)
-        assert results["protein"].reason == "max_consecutive_declines"
+        assert results["protein"].reason is ReviewReason.MAX_CONSECUTIVE_DECLINES
 
 
 class TestCollectParseFailures:
@@ -204,7 +204,7 @@ class TestCollectStoppingCriteria:
 
         assert call_count == 5
         assert isinstance(results["protein"], NeedsReview)
-        assert results["protein"].reason == "insufficient_confidence"
+        assert results["protein"].reason is ReviewReason.INSUFFICIENT_CONFIDENCE
 
 
 class TestCollectConfidence:

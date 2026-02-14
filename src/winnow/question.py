@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
 
@@ -31,7 +30,9 @@ class QuestionBank:
 
     def __init__(self, questions: Sequence[Question]) -> None:
         self._questions = {q.uid: q for q in questions}
+        self._question_order = [q.uid for q in questions]
         self._current_question_uid: str | None = None
+        self._next_index: int = 0
 
     @property
     def questions(self) -> dict[str, Question]:
@@ -63,21 +64,21 @@ class QuestionBank:
         self,
         states: dict[str, SampleState],
     ) -> Question | None:
-        """Select the next question to ask.
+        """Select the next question to ask using round-robin.
 
-        Returns an incomplete question at random, or None if all complete.
-        Randomisation prevents the model from anchoring on repeated queries.
+        Cycles through questions in order, skipping any that have reached
+        their stopping criterion. Returns None if all questions are complete.
         """
-        incomplete = [
-            q
-            for q in self._questions.values()
-            if not q.stopping_criterion.should_stop(states[q.uid])
-        ]
+        num_questions = len(self._question_order)
 
-        if not incomplete:
-            self._current_question_uid = None
-            return None
+        for _ in range(num_questions):
+            uid = self._question_order[self._next_index]
+            self._next_index = (self._next_index + 1) % num_questions
+            question = self._questions[uid]
 
-        selected = random.choice(incomplete)
-        self._current_question_uid = selected.uid
-        return selected
+            if not question.stopping_criterion.should_stop(states[uid]):
+                self._current_question_uid = uid
+                return question
+
+        self._current_question_uid = None
+        return None

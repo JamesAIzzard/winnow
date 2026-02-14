@@ -6,6 +6,8 @@ from __future__ import annotations
 # Core types
 from winnow.types import Estimate as Estimate
 from winnow.types import NeedsReview as NeedsReview
+from winnow.types import NoEstimate as NoEstimate
+from winnow.types import ReviewReason as ReviewReason
 from winnow.types import SampleState as SampleState
 
 # Question system
@@ -43,6 +45,8 @@ __all__ = [
     # Core types
     "Estimate",
     "NeedsReview",
+    "NoEstimate",
+    "ReviewReason",
     "SampleState",
     # Question system
     "Question",

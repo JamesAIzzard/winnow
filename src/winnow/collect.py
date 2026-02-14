@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from winnow.config import default_config
 from winnow.exceptions import ModelDeclinedError, ParseFailedError
-from winnow.types import Estimate, NeedsReview, SampleState
+from winnow.types import Estimate, NeedsReview, NoEstimate, ReviewReason, SampleState
 
 from winnow.stopping import StoppingCriterion
 
@@ -38,7 +38,7 @@ async def collect(
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
-            current_estimate=None,
+            current_estimate=NoEstimate,
             current_confidence=0.0,
         )
         for q in bank.questions.values()
@@ -85,7 +85,7 @@ def _state_for_samples(samples: tuple[object, ...]) -> SampleState:
         decline_count=0,
         parse_failure_count=0,
         consecutive_declines=0,
-        current_estimate=None,
+        current_estimate=NoEstimate,
         current_confidence=0.0,
     )
 
@@ -173,12 +173,12 @@ def _build_estimates(
 def _determine_failure_reason(
     state: SampleState,
     criterion: StoppingCriterion,
-) -> str:
+) -> ReviewReason:
     """Determine why estimation failed for a question."""
     if state.consecutive_declines >= criterion.max_consecutive_declines:
-        return "max_consecutive_declines"
+        return ReviewReason.MAX_CONSECUTIVE_DECLINES
     if state.parse_failure_count >= criterion.max_parse_failures:
-        return "max_parse_failures"
+        return ReviewReason.MAX_PARSE_FAILURES
     if len(state.samples) == 0:
-        return "max_queries"
-    return "insufficient_confidence"
+        return ReviewReason.MAX_QUERIES
+    return ReviewReason.INSUFFICIENT_CONFIDENCE

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from winnow.types import Estimate, SampleState
+from winnow.types import Estimate, NoEstimate, SampleState
 
 
 class TestSampleState:
@@ -11,7 +11,7 @@ class TestSampleState:
             decline_count=2,
             parse_failure_count=1,
             consecutive_declines=0,
-            current_estimate=None,
+            current_estimate=NoEstimate,
             current_confidence=0.0,
         )
 
@@ -24,7 +24,7 @@ class TestSampleState:
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
-            current_estimate=None,
+            current_estimate=NoEstimate,
             current_confidence=0.0,
         )
 
@@ -37,7 +37,7 @@ class TestSampleState:
             decline_count=0,
             parse_failure_count=0,
             consecutive_declines=0,
-            current_estimate=None,
+            current_estimate=NoEstimate,
             current_confidence=0.0,
         )
 
