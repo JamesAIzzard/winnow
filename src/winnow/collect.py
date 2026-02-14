@@ -4,8 +4,10 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
-from winnow.exceptions import EstimationFailedError, ModelDeclinedError, ParseFailedError
-from winnow.types import Estimate, SampleState
+from winnow.exceptions import ModelDeclinedError, ParseFailedError
+from winnow.types import Estimate, NeedsReview, SampleState
+
+from winnow.stopping import StoppingCriterion
 
 if TYPE_CHECKING:
     from winnow.question import Question, QuestionBank
@@ -16,7 +18,7 @@ async def collect(
     bank: QuestionBank,
     query_fn: Callable[[str], Awaitable[str]],
     on_progress: Callable[[dict[str, SampleState]], None] | None = None,
-) -> dict[str, Estimate]:
+) -> dict[str, Estimate | NeedsReview]:
     """Collect estimates for all questions in the bank.
 
     Args:
@@ -27,7 +29,8 @@ async def collect(
             current states. Useful for displaying progress in CLI applications.
 
     Returns:
-        Mapping from question UID to its estimate.
+        Mapping from question UID to either an Estimate (successful) or
+        NeedsReview (collection failed and the item needs manual review).
     """
     states: dict[str, SampleState] = {
         q.uid: SampleState(
@@ -141,19 +144,41 @@ def _record_parse_failure(state: SampleState) -> SampleState:
 def _build_estimates(
     questions: dict[str, Question],
     states: dict[str, SampleState],
-) -> dict[str, Estimate]:
+) -> dict[str, Estimate | NeedsReview]:
     """Build final estimates from collected states."""
-    estimates: dict[str, Estimate] = {}
+    results: dict[str, Estimate | NeedsReview] = {}
 
     for q in questions.values():
         state = states[q.uid]
+        criterion = q.stopping_criterion
 
-        if len(state.samples) == 0 or state.current_estimate is None:
-            raise EstimationFailedError(question_uid=q.uid)
-
-        estimates[q.uid] = Estimate(
-            value=state.current_estimate,
-            confidence=state.current_confidence,
+        converged = (
+            len(state.samples) >= criterion.min_samples
+            and state.current_confidence >= criterion.confidence_threshold
         )
 
-    return estimates
+        if converged:
+            results[q.uid] = Estimate(
+                value=state.current_estimate,
+                confidence=state.current_confidence,
+            )
+        else:
+            results[q.uid] = NeedsReview(
+                reason=_determine_failure_reason(state, criterion),
+            )
+
+    return results
+
+
+def _determine_failure_reason(
+    state: SampleState,
+    criterion: StoppingCriterion,
+) -> str:
+    """Determine why estimation failed for a question."""
+    if state.consecutive_declines >= criterion.max_consecutive_declines:
+        return "max_consecutive_declines"
+    if state.parse_failure_count >= criterion.max_parse_failures:
+        return "max_parse_failures"
+    if len(state.samples) == 0:
+        return "max_queries"
+    return "insufficient_confidence"

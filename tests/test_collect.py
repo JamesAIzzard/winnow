@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 from winnow.collect import collect
-from winnow.exceptions import EstimationFailedError
 from winnow.estimator.boolean import BooleanEstimator
 from winnow.estimator.numerical import NumericalEstimator
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
+from winnow.types import Estimate, NeedsReview
 
 
 class TestCollectBasic:
@@ -51,7 +49,7 @@ class TestCollectBasic:
                 parser=BooleanParser(),
                 estimator=BooleanEstimator(),
                 stopping_criterion=StoppingCriterion(
-                    min_samples=5, max_queries=5, confidence_threshold=1.0
+                    min_samples=5, max_queries=5, confidence_threshold=0.5
                 ),
             ),
         ])
@@ -59,7 +57,9 @@ class TestCollectBasic:
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert "is_vegan" in results
-        assert results["is_vegan"].value is True
+        result = results["is_vegan"]
+        assert isinstance(result, Estimate)
+        assert result.value is True
 
 
 class TestCollectMultipleQuestions:
@@ -96,8 +96,8 @@ class TestCollectMultipleQuestions:
 
         assert "protein" in results
         assert "fat" in results
-        assert results["protein"].value is not None
-        assert results["fat"].value is not None
+        assert isinstance(results["protein"], Estimate)
+        assert isinstance(results["fat"], Estimate)
 
 
 class TestCollectDeclineHandling:
@@ -123,8 +123,8 @@ class TestCollectDeclineHandling:
         # Declines are skipped but valid samples still produce an estimate
         assert results["protein"].value == 31.0
 
-    def test_raises_when_all_declines(self) -> None:
-        """Verify EstimationFailedError raised when all responses are declines."""
+    def test_returns_needs_review_when_all_declines(self) -> None:
+        """Verify NeedsReview returned when all responses are declines."""
         responses = iter(["DECLINE"] * 10)
 
         async def query_fn(prompt: str) -> str:
@@ -140,10 +140,10 @@ class TestCollectDeclineHandling:
             ),
         ])
 
-        with pytest.raises(EstimationFailedError) as exc_info:
-            asyncio.run(collect(bank=questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert exc_info.value.question_uid == "protein"
+        assert isinstance(results["protein"], NeedsReview)
+        assert results["protein"].reason == "max_consecutive_declines"
 
 
 class TestCollectParseFailures:
@@ -166,9 +166,10 @@ class TestCollectParseFailures:
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
-        assert results["protein"].value is not None
-        # Parse failures don't penalise confidence (only declines do)
-        assert results["protein"].confidence > 0.0
+        result = results["protein"]
+        assert isinstance(result, Estimate)
+        # Parse failures don't prevent convergence when enough valid samples exist
+        assert result.confidence > 0.0
 
 
 class TestCollectStoppingCriteria:
@@ -195,9 +196,11 @@ class TestCollectStoppingCriteria:
             ),
         ])
 
-        asyncio.run(collect(bank=questions, query_fn=query_fn))
+        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert call_count == 5
+        assert isinstance(results["protein"], NeedsReview)
+        assert results["protein"].reason == "insufficient_confidence"
 
 
 class TestCollectConfidence:

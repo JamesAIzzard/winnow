@@ -5,6 +5,7 @@ from __future__ import annotations
 
 # Core types
 from winnow.types import Estimate as Estimate
+from winnow.types import NeedsReview as NeedsReview
 from winnow.types import SampleState as SampleState
 
 # Question system
@@ -41,6 +42,7 @@ from winnow.exceptions import WinnowError as WinnowError
 __all__ = [
     # Core types
     "Estimate",
+    "NeedsReview",
     "SampleState",
     # Question system
     "Question",
