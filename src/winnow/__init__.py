@@ -19,6 +19,7 @@ from winnow.collect import collect as collect
 
 # Parser package
 from winnow.parser import BooleanParser as BooleanParser
+from winnow.parser import FloatLiteralPairParser as FloatLiteralPairParser
 from winnow.parser import FloatParser as FloatParser
 from winnow.parser import LiteralParser as LiteralParser
 from winnow.parser import OptionalBoundedIntParser as OptionalBoundedIntParser
@@ -29,6 +30,7 @@ from winnow.estimator import BooleanEstimator as BooleanEstimator
 from winnow.estimator import CategoricalEstimator as CategoricalEstimator
 from winnow.estimator import Estimator as Estimator
 from winnow.estimator import NumericalEstimator as NumericalEstimator
+from winnow.estimator import OpenCategoricalEstimator as OpenCategoricalEstimator
 from winnow.estimator import OptionalIntEstimator as OptionalIntEstimator
 
 # Stopping criterion
@@ -55,6 +57,7 @@ __all__ = [
     "collect",
     # Parser package
     "BooleanParser",
+    "FloatLiteralPairParser",
     "FloatParser",
     "LiteralParser",
     "OptionalBoundedIntParser",
@@ -64,6 +67,7 @@ __all__ = [
     "CategoricalEstimator",
     "Estimator",
     "NumericalEstimator",
+    "OpenCategoricalEstimator",
     "OptionalIntEstimator",
     # Stopping criterion
     "StoppingCriterion",
