@@ -33,7 +33,9 @@ class TestCollectBasic:
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         assert "protein" in results
-        assert results["protein"].value == 31.0
+        result = results["protein"]
+        assert isinstance(result, Estimate)
+        assert result.value == 31.0
 
     def test_collects_boolean_samples(self) -> None:
         """Verify collect gathers boolean samples and produces estimate."""
@@ -121,7 +123,9 @@ class TestCollectDeclineHandling:
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         # Declines are skipped but valid samples still produce an estimate
-        assert results["protein"].value == 31.0
+        result = results["protein"]
+        assert isinstance(result, Estimate)
+        assert result.value == 31.0
 
     def test_returns_needs_review_when_all_declines(self) -> None:
         """Verify NeedsReview returned when all responses are declines."""
@@ -225,4 +229,6 @@ class TestCollectConfidence:
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
         # Identical samples should give full confidence
-        assert results["protein"].confidence == 1.0
+        result = results["protein"]
+        assert isinstance(result, Estimate)
+        assert result.confidence == 1.0
