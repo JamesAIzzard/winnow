@@ -40,6 +40,8 @@ async def collect(
             consecutive_declines=0,
             current_estimate=NoEstimate,
             current_confidence=0.0,
+            converged=False,
+            failure_reason=None,
         )
         for q in bank.questions.values()
     }
@@ -72,6 +74,10 @@ async def collect(
         except ParseFailedError:
             states[question.uid] = _record_parse_failure(states[question.uid])
 
+        states[question.uid] = _resolve_status(
+            states[question.uid], question.stopping_criterion,
+        )
+
         if on_progress is not None:
             on_progress(states)
 
@@ -87,6 +93,8 @@ def _state_for_samples(samples: tuple[object, ...]) -> SampleState:
         consecutive_declines=0,
         current_estimate=NoEstimate,
         current_confidence=0.0,
+        converged=False,
+        failure_reason=None,
     )
 
 
@@ -114,6 +122,8 @@ def _record_sample(
         consecutive_declines=0,
         current_estimate=current_estimate,
         current_confidence=current_confidence,
+        converged=False,
+        failure_reason=None,
     )
 
 
@@ -126,6 +136,8 @@ def _record_decline(state: SampleState) -> SampleState:
         consecutive_declines=state.consecutive_declines + 1,
         current_estimate=state.current_estimate,
         current_confidence=state.current_confidence,
+        converged=False,
+        failure_reason=None,
     )
 
 
@@ -138,6 +150,42 @@ def _record_parse_failure(state: SampleState) -> SampleState:
         consecutive_declines=0,
         current_estimate=state.current_estimate,
         current_confidence=state.current_confidence,
+        converged=False,
+        failure_reason=None,
+    )
+
+
+def _resolve_status(
+    state: SampleState,
+    criterion: StoppingCriterion,
+) -> SampleState:
+    """Set converged and failure_reason based on the stopping criterion.
+
+    If the criterion says sampling should stop, determines whether it stopped
+    successfully (converged) or unsuccessfully (failure_reason set).
+    Returns the state unchanged if sampling should continue.
+    """
+    if not criterion.should_stop(state):
+        return state
+
+    converged = (
+        len(state.samples) >= criterion.min_samples
+        and state.current_confidence >= criterion.confidence_threshold
+    )
+
+    failure_reason: ReviewReason | None = None
+    if not converged:
+        failure_reason = _determine_failure_reason(state, criterion)
+
+    return SampleState(
+        samples=state.samples,
+        decline_count=state.decline_count,
+        parse_failure_count=state.parse_failure_count,
+        consecutive_declines=state.consecutive_declines,
+        current_estimate=state.current_estimate,
+        current_confidence=state.current_confidence,
+        converged=converged,
+        failure_reason=failure_reason,
     )
 
 
@@ -150,22 +198,15 @@ def _build_estimates(
 
     for q in questions.values():
         state = states[q.uid]
-        criterion = q.stopping_criterion
 
-        converged = (
-            len(state.samples) >= criterion.min_samples
-            and state.current_confidence >= criterion.confidence_threshold
-        )
-
-        if converged:
+        if state.converged:
             results[q.uid] = Estimate(
                 value=state.current_estimate,
                 confidence=state.current_confidence,
             )
         else:
-            results[q.uid] = NeedsReview(
-                reason=_determine_failure_reason(state, criterion),
-            )
+            assert state.failure_reason is not None
+            results[q.uid] = NeedsReview(reason=state.failure_reason)
 
     return results
 

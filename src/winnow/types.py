@@ -48,6 +48,8 @@ class SampleState(Generic[T_co]):
     consecutive_declines: int
     current_estimate: T_co | _NoEstimateType
     current_confidence: float
+    converged: bool
+    failure_reason: ReviewReason | None
 
     @property
     def query_count(self) -> int:

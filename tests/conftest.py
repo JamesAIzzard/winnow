@@ -30,6 +30,8 @@ def make_state():
             consecutive_declines=0,
             current_estimate=NoEstimate,
             current_confidence=0.0,
+            converged=False,
+            failure_reason=None,
         )
 
     return _make_state

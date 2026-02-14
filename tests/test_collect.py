@@ -9,7 +9,7 @@ from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
-from winnow.types import Estimate, NeedsReview, ReviewReason
+from winnow.types import Estimate, NeedsReview, ReviewReason, SampleState
 
 
 class TestCollectBasic:
@@ -232,3 +232,89 @@ class TestCollectConfidence:
         result = results["protein"]
         assert isinstance(result, Estimate)
         assert result.confidence == 1.0
+
+
+class TestCollectProgressConvergence:
+    def test_converged_state_in_progress_callback(self) -> None:
+        """Verify converged is True in progress callback when threshold is met."""
+        responses = iter(["31", "31", "31"])
+        progress_states: list[dict[str, SampleState]] = []
+
+        async def query_fn(prompt: str) -> str:
+            return next(responses)
+
+        def on_progress(states: dict[str, SampleState]) -> None:
+            progress_states.append(dict(states))
+
+        questions = QuestionBank([
+            Question(
+                uid="protein",
+                query="How many grams of protein?",
+                parser=FloatParser(),
+                estimator=NumericalEstimator(),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
+            ),
+        ])
+
+        asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
+
+        # Final progress callback should show converged
+        final_state = progress_states[-1]["protein"]
+        assert final_state.converged is True
+        assert final_state.failure_reason is None
+
+    def test_failure_reason_in_progress_callback(self) -> None:
+        """Verify failure_reason is set when collection fails."""
+        responses = iter(["DECLINE"] * 10)
+        progress_states: list[dict[str, SampleState]] = []
+
+        async def query_fn(prompt: str) -> str:
+            return next(responses)
+
+        def on_progress(states: dict[str, SampleState]) -> None:
+            progress_states.append(dict(states))
+
+        questions = QuestionBank([
+            Question(
+                uid="protein",
+                query="How many grams of protein?",
+                parser=FloatParser(),
+                estimator=NumericalEstimator(),
+                stopping_criterion=StoppingCriterion(min_samples=1, max_queries=10),
+            ),
+        ])
+
+        asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
+
+        final_state = progress_states[-1]["protein"]
+        assert final_state.converged is False
+        assert final_state.failure_reason is ReviewReason.MAX_CONSECUTIVE_DECLINES
+
+    def test_intermediate_states_not_converged(self) -> None:
+        """Verify intermediate progress callbacks show not-yet-converged states."""
+        responses = iter(["31", "31", "31"])
+        progress_states: list[dict[str, SampleState]] = []
+
+        async def query_fn(prompt: str) -> str:
+            return next(responses)
+
+        def on_progress(states: dict[str, SampleState]) -> None:
+            progress_states.append(dict(states))
+
+        questions = QuestionBank([
+            Question(
+                uid="protein",
+                query="How many grams of protein?",
+                parser=FloatParser(),
+                estimator=NumericalEstimator(),
+                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
+            ),
+        ])
+
+        asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
+
+        # First two callbacks should not be converged (need min_samples=3)
+        assert progress_states[0]["protein"].converged is False
+        assert progress_states[0]["protein"].failure_reason is None
+        assert progress_states[1]["protein"].converged is False
+        assert progress_states[1]["protein"].failure_reason is None
