@@ -5,7 +5,14 @@ from typing import TYPE_CHECKING
 
 from winnow.config import default_config
 from winnow.exceptions import ModelDeclinedError, ParseFailedError
-from winnow.types import Estimate, NeedsReview, NoEstimate, ReviewReason, SampleState
+from winnow.types import (
+    Estimate,
+    NeedsReview,
+    NoEstimate,
+    ReviewReason,
+    SampleState,
+    SampleStatus,
+)
 
 from winnow.stopping import StoppingCriterion
 
@@ -40,7 +47,7 @@ async def collect(
             consecutive_declines=0,
             current_estimate=NoEstimate,
             current_confidence=0.0,
-            converged=False,
+            status=SampleStatus.PENDING,
             failure_reason=None,
         )
         for q in bank.questions.values()
@@ -93,7 +100,7 @@ def _state_for_samples(samples: tuple[object, ...]) -> SampleState:
         consecutive_declines=0,
         current_estimate=NoEstimate,
         current_confidence=0.0,
-        converged=False,
+        status=SampleStatus.COLLECTING,
         failure_reason=None,
     )
 
@@ -122,7 +129,7 @@ def _record_sample(
         consecutive_declines=0,
         current_estimate=current_estimate,
         current_confidence=current_confidence,
-        converged=False,
+        status=SampleStatus.COLLECTING,
         failure_reason=None,
     )
 
@@ -136,7 +143,7 @@ def _record_decline(state: SampleState) -> SampleState:
         consecutive_declines=state.consecutive_declines + 1,
         current_estimate=state.current_estimate,
         current_confidence=state.current_confidence,
-        converged=False,
+        status=SampleStatus.COLLECTING,
         failure_reason=None,
     )
 
@@ -150,7 +157,7 @@ def _record_parse_failure(state: SampleState) -> SampleState:
         consecutive_declines=0,
         current_estimate=state.current_estimate,
         current_confidence=state.current_confidence,
-        converged=False,
+        status=SampleStatus.COLLECTING,
         failure_reason=None,
     )
 
@@ -173,8 +180,11 @@ def _resolve_status(
         and state.current_confidence >= criterion.confidence_threshold
     )
 
-    failure_reason: ReviewReason | None = None
-    if not converged:
+    if converged:
+        status = SampleStatus.CONVERGED
+        failure_reason = None
+    else:
+        status = SampleStatus.NEEDS_REVIEW
         failure_reason = _determine_failure_reason(state, criterion)
 
     return SampleState(
@@ -184,7 +194,7 @@ def _resolve_status(
         consecutive_declines=state.consecutive_declines,
         current_estimate=state.current_estimate,
         current_confidence=state.current_confidence,
-        converged=converged,
+        status=status,
         failure_reason=failure_reason,
     )
 
@@ -199,12 +209,13 @@ def _build_estimates(
     for q in questions.values():
         state = states[q.uid]
 
-        if state.converged:
+        if state.status is SampleStatus.CONVERGED:
             results[q.uid] = Estimate(
                 value=state.current_estimate,
                 confidence=state.current_confidence,
             )
         else:
+            assert state.status is SampleStatus.NEEDS_REVIEW
             assert state.failure_reason is not None
             results[q.uid] = NeedsReview(reason=state.failure_reason)
 

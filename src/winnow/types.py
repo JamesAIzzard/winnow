@@ -38,6 +38,15 @@ NoEstimate = _NoEstimateType()
 """Sentinel value indicating no estimate has been computed yet."""
 
 
+class SampleStatus(Enum):
+    """Explicit lifecycle status of a sampling question."""
+
+    PENDING = "pending"
+    COLLECTING = "collecting"
+    CONVERGED = "converged"
+    NEEDS_REVIEW = "needs_review"
+
+
 @dataclass(frozen=True)
 class SampleState(Generic[T_co]):
     """Current sampling state for a single question."""
@@ -48,7 +57,7 @@ class SampleState(Generic[T_co]):
     consecutive_declines: int
     current_estimate: T_co | _NoEstimateType
     current_confidence: float
-    converged: bool
+    status: SampleStatus
     failure_reason: ReviewReason | None
 
     @property

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from winnow.types import NoEstimate, SampleState
+from winnow.types import NoEstimate, SampleState, SampleStatus
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -30,7 +30,7 @@ def make_state():
             consecutive_declines=0,
             current_estimate=NoEstimate,
             current_confidence=0.0,
-            converged=False,
+            status=SampleStatus.COLLECTING,
             failure_reason=None,
         )
 

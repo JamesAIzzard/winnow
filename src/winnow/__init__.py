@@ -9,6 +9,7 @@ from winnow.types import NeedsReview as NeedsReview
 from winnow.types import NoEstimate as NoEstimate
 from winnow.types import ReviewReason as ReviewReason
 from winnow.types import SampleState as SampleState
+from winnow.types import SampleStatus as SampleStatus
 
 # Question system
 from winnow.question import Question as Question
@@ -50,6 +51,7 @@ __all__ = [
     "NoEstimate",
     "ReviewReason",
     "SampleState",
+    "SampleStatus",
     # Question system
     "Question",
     "QuestionBank",

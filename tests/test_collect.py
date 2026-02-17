@@ -9,7 +9,7 @@ from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
-from winnow.types import Estimate, NeedsReview, ReviewReason, SampleState
+from winnow.types import Estimate, NeedsReview, ReviewReason, SampleState, SampleStatus
 
 
 class TestCollectBasic:
@@ -260,7 +260,7 @@ class TestCollectProgressConvergence:
 
         # Final progress callback should show converged
         final_state = progress_states[-1]["protein"]
-        assert final_state.converged is True
+        assert final_state.status is SampleStatus.CONVERGED
         assert final_state.failure_reason is None
 
     def test_failure_reason_in_progress_callback(self) -> None:
@@ -287,7 +287,7 @@ class TestCollectProgressConvergence:
         asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
 
         final_state = progress_states[-1]["protein"]
-        assert final_state.converged is False
+        assert final_state.status is SampleStatus.NEEDS_REVIEW
         assert final_state.failure_reason is ReviewReason.MAX_CONSECUTIVE_DECLINES
 
     def test_intermediate_states_not_converged(self) -> None:
@@ -313,8 +313,8 @@ class TestCollectProgressConvergence:
 
         asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
 
-        # First two callbacks should not be converged (need min_samples=3)
-        assert progress_states[0]["protein"].converged is False
+        # First two callbacks should still be collecting (need min_samples=3)
+        assert progress_states[0]["protein"].status is SampleStatus.COLLECTING
         assert progress_states[0]["protein"].failure_reason is None
-        assert progress_states[1]["protein"].converged is False
+        assert progress_states[1]["protein"].status is SampleStatus.COLLECTING
         assert progress_states[1]["protein"].failure_reason is None
