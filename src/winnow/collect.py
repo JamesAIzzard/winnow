@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
-from winnow.exceptions import ModelDeclinedError, ParseFailedError
+from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
 from winnow.types import (
     Estimate,
     NeedsReview,
@@ -25,6 +25,7 @@ async def collect(
     bank: QuestionBank,
     query_fn: Callable[[str], Awaitable[str]],
     on_progress: Callable[[dict[str, SampleState]], None] | None = None,
+    initial_states: dict[str, SampleState] | None = None,
 ) -> dict[str, Estimate | NeedsReview]:
     """Collect estimates for all questions in the bank.
 
@@ -34,13 +35,25 @@ async def collect(
             and returns the raw response string.
         on_progress: Optional callback invoked after each query with the
             current states. Useful for displaying progress in CLI applications.
+        initial_states: Optional pre-populated states keyed by question UID.
+            Useful for resuming from cached progress. States with
+            CONVERGED status are automatically skipped by the collection loop.
 
     Returns:
         Mapping from question UID to either an Estimate (successful) or
         NeedsReview (collection failed and the item needs manual review).
+
+    Raises:
+        UnknownInitialStateError: If initial_states contains UIDs not
+            present in the question bank.
     """
-    states: dict[str, SampleState] = {
-        q.uid: SampleState(
+    if initial_states is not None:
+        unknown_uids = initial_states.keys() - bank.questions.keys()
+        if unknown_uids:
+            raise UnknownInitialStateError(unknown_uids=unknown_uids)
+
+    def _make_empty() -> SampleState:
+        return SampleState(
             samples=(),
             decline_count=0,
             parse_failure_count=0,
@@ -49,6 +62,13 @@ async def collect(
             current_confidence=0.0,
             status=SampleStatus.PENDING,
             failure_reason=None,
+        )
+
+    states: dict[str, SampleState] = {
+        q.uid: (
+            initial_states[q.uid]
+            if initial_states is not None and q.uid in initial_states
+            else _make_empty()
         )
         for q in bank.questions.values()
     }

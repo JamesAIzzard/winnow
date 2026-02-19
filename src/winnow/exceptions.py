@@ -31,3 +31,13 @@ class ModelDeclinedError(WinnowError):
     def __init__(self, *, response: str) -> None:
         self.response = response
         super().__init__(f"Model declined to answer: {response!r}")
+
+
+class UnknownInitialStateError(WinnowError):
+    """Raised when initial_states contains UIDs not in the question bank."""
+
+    def __init__(self, *, unknown_uids: set[str]) -> None:
+        self.unknown_uids = unknown_uids
+        super().__init__(
+            f"initial_states contains UIDs not in question bank: {unknown_uids}"
+        )

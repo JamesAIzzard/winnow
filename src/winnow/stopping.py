@@ -4,9 +4,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
+from winnow.types import SampleStatus
 
 if TYPE_CHECKING:
     from winnow.types import SampleState
+
+_TERMINAL_STATUSES = frozenset({SampleStatus.CONVERGED, SampleStatus.NEEDS_REVIEW})
 
 
 @dataclass(frozen=True)
@@ -14,6 +17,7 @@ class StoppingCriterion:
     """Determines when sampling should stop for a question.
 
     Stops when any of:
+    - State already has a terminal status (CONVERGED or NEEDS_REVIEW)
     - Confidence threshold reached (after min_samples collected)
     - Max queries reached
     - Max consecutive declines reached
@@ -28,6 +32,9 @@ class StoppingCriterion:
 
     def should_stop(self, state: SampleState) -> bool:
         """Return True if sampling should stop."""
+        if state.status in _TERMINAL_STATUSES:
+            return True
+
         if state.query_count >= self.max_queries:
             return True
 

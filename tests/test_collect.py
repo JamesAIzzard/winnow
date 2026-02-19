@@ -2,14 +2,24 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from winnow.collect import collect
 from winnow.estimator.boolean import BooleanEstimator
 from winnow.estimator.numerical import NumericalEstimator
+from winnow.exceptions import UnknownInitialStateError
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
-from winnow.types import Estimate, NeedsReview, ReviewReason, SampleState, SampleStatus
+from winnow.types import (
+    Estimate,
+    NeedsReview,
+    NoEstimate,
+    ReviewReason,
+    SampleState,
+    SampleStatus,
+)
 
 
 class TestCollectBasic:
@@ -20,15 +30,19 @@ class TestCollectBasic:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=5, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=5, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -44,17 +58,19 @@ class TestCollectBasic:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="is_vegan",
-                query="Is this vegan?",
-                parser=BooleanParser(),
-                estimator=BooleanEstimator(),
-                stopping_criterion=StoppingCriterion(
-                    min_samples=5, max_queries=5, confidence_threshold=0.5
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="is_vegan",
+                    query="Is this vegan?",
+                    parser=BooleanParser(),
+                    estimator=BooleanEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=5, max_queries=5, confidence_threshold=0.5
+                    ),
                 ),
-            ),
-        ])
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -77,22 +93,28 @@ class TestCollectMultipleQuestions:
                 return next(response_map["protein"])
             return next(response_map["fat"])
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-            Question(
-                uid="fat",
-                query="How many grams of fat?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -110,15 +132,19 @@ class TestCollectDeclineHandling:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -134,15 +160,17 @@ class TestCollectDeclineHandling:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=1, max_queries=5),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=1, max_queries=5),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -158,15 +186,19 @@ class TestCollectParseFailures:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -188,17 +220,19 @@ class TestCollectStoppingCriteria:
             call_count += 1
             return next(values)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(
-                    min_samples=1, max_queries=5, confidence_threshold=0.99
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=1, max_queries=5, confidence_threshold=0.99
+                    ),
                 ),
-            ),
-        ])
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -216,15 +250,19 @@ class TestCollectConfidence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         results = asyncio.run(collect(bank=questions, query_fn=query_fn))
 
@@ -246,15 +284,19 @@ class TestCollectProgressConvergence:
         def on_progress(states: dict[str, SampleState]) -> None:
             progress_states.append(dict(states))
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
 
@@ -274,15 +316,17 @@ class TestCollectProgressConvergence:
         def on_progress(states: dict[str, SampleState]) -> None:
             progress_states.append(dict(states))
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=1, max_queries=10),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=1, max_queries=10),
+                ),
+            ]
+        )
 
         asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
 
@@ -301,15 +345,19 @@ class TestCollectProgressConvergence:
         def on_progress(states: dict[str, SampleState]) -> None:
             progress_states.append(dict(states))
 
-        questions = QuestionBank([
-            Question(
-                uid="protein",
-                query="How many grams of protein?",
-                parser=FloatParser(),
-                estimator=NumericalEstimator(),
-                stopping_criterion=StoppingCriterion(min_samples=3, max_queries=100),
-            ),
-        ])
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
 
         asyncio.run(collect(bank=questions, query_fn=query_fn, on_progress=on_progress))
 
@@ -318,3 +366,219 @@ class TestCollectProgressConvergence:
         assert progress_states[0]["protein"].failure_reason is None
         assert progress_states[1]["protein"].status is SampleStatus.COLLECTING
         assert progress_states[1]["protein"].failure_reason is None
+
+
+class TestCollectInitialStates:
+    def test_raises_on_unknown_initial_state_uids(self) -> None:
+        """Verify UnknownInitialStateError raised when initial_states has UIDs not in bank."""
+
+        async def query_fn(prompt: str) -> str:
+            return "31"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        bogus_state = SampleState(
+            samples=(42.0,),
+            decline_count=0,
+            parse_failure_count=0,
+            consecutive_declines=0,
+            current_estimate=42.0,
+            current_confidence=1.0,
+            status=SampleStatus.CONVERGED,
+            failure_reason=None,
+        )
+
+        with pytest.raises(UnknownInitialStateError) as exc_info:
+            asyncio.run(
+                collect(
+                    bank=bank,
+                    query_fn=query_fn,
+                    initial_states={"not_in_bank": bogus_state},
+                )
+            )
+
+        assert exc_info.value.unknown_uids == {"not_in_bank"}
+
+    def test_raises_on_mix_of_known_and_unknown_uids(self) -> None:
+        """Verify error reports only the unknown UIDs when some are valid."""
+
+        async def query_fn(prompt: str) -> str:
+            return "31"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        converged_state = SampleState(
+            samples=(31.0, 31.0, 31.0),
+            decline_count=0,
+            parse_failure_count=0,
+            consecutive_declines=0,
+            current_estimate=31.0,
+            current_confidence=1.0,
+            status=SampleStatus.CONVERGED,
+            failure_reason=None,
+        )
+
+        with pytest.raises(UnknownInitialStateError) as exc_info:
+            asyncio.run(
+                collect(
+                    bank=bank,
+                    query_fn=query_fn,
+                    initial_states={
+                        "protein": converged_state,
+                        "stale_uid": converged_state,
+                        "another_stale": converged_state,
+                    },
+                )
+            )
+
+        assert exc_info.value.unknown_uids == {"stale_uid", "another_stale"}
+
+    def test_skips_converged_initial_states(self) -> None:
+        """Verify converged initial states are not re-queried."""
+        query_count = 0
+
+        async def query_fn(prompt: str) -> str:
+            nonlocal query_count
+            query_count += 1
+            return "5"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        # Pre-converged state for protein; fat starts fresh
+        cached_protein = SampleState(
+            samples=(31.0, 31.0, 31.0),
+            decline_count=0,
+            parse_failure_count=0,
+            consecutive_declines=0,
+            current_estimate=31.0,
+            current_confidence=1.0,
+            status=SampleStatus.CONVERGED,
+            failure_reason=None,
+        )
+
+        results = asyncio.run(
+            collect(
+                bank=bank,
+                query_fn=query_fn,
+                initial_states={"protein": cached_protein},
+            )
+        )
+
+        # Protein should use the cached estimate without any queries
+        assert isinstance(results["protein"], Estimate)
+        assert results["protein"].value == 31.0
+
+        # Fat should have been queried normally
+        assert isinstance(results["fat"], Estimate)
+        assert results["fat"].value == 5.0
+
+        # Only fat was queried (3 samples), protein was skipped
+        assert query_count == 3
+
+    def test_skips_needs_review_initial_states(self) -> None:
+        """Verify NEEDS_REVIEW initial states are not re-queried."""
+        query_count = 0
+
+        async def query_fn(prompt: str) -> str:
+            nonlocal query_count
+            query_count += 1
+            return "5"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        # Protein previously failed; fat starts fresh
+        failed_protein = SampleState(
+            samples=(),
+            decline_count=0,
+            parse_failure_count=0,
+            consecutive_declines=5,
+            current_estimate=NoEstimate,
+            current_confidence=0.0,
+            status=SampleStatus.NEEDS_REVIEW,
+            failure_reason=ReviewReason.MAX_CONSECUTIVE_DECLINES,
+        )
+
+        results = asyncio.run(
+            collect(
+                bank=bank,
+                query_fn=query_fn,
+                initial_states={"protein": failed_protein},
+            )
+        )
+
+        # Protein should be returned as NeedsReview without any queries
+        assert isinstance(results["protein"], NeedsReview)
+        assert results["protein"].reason is ReviewReason.MAX_CONSECUTIVE_DECLINES
+
+        # Fat should have been queried normally
+        assert isinstance(results["fat"], Estimate)
+        assert results["fat"].value == 5.0
+
+        # Only fat was queried (3 samples), protein was skipped
+        assert query_count == 3
