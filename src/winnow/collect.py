@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
@@ -19,6 +22,8 @@ from winnow.stopping import StoppingCriterion
 
 if TYPE_CHECKING:
     from winnow.question import Question, QuestionBank
+
+_logger = logging.getLogger("winnow")
 
 
 async def collect(
@@ -66,7 +71,10 @@ async def collect(
         prompts = [_build_prompt(q.query) for q in wave]
         responses = await asyncio.gather(*(query_fn(p) for p in prompts))
 
-        for question, response in zip(wave, responses):
+        for question, prompt, response in zip(wave, prompts, responses):
+            _log_exchange(
+                question_uid=question.uid, prompt=prompt, response=response,
+            )
             _process_response(question, response, states)
 
         if on_progress is not None:
@@ -156,6 +164,22 @@ def _build_prompt(query: str) -> str:
         f"respond with only: {default_config.decline_keyword}"
     )
     return f"{query}\n\n{decline_instruction}"
+
+
+def _log_exchange(
+    *,
+    question_uid: str,
+    prompt: str,
+    response: str,
+) -> None:
+    """Emit a JSONL record for a single prompt/response exchange."""
+    record = json.dumps({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "question_uid": question_uid,
+        "prompt": prompt,
+        "response": response,
+    })
+    _logger.debug(record)
 
 
 def _record_sample(

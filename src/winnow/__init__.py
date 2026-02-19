@@ -35,6 +35,9 @@ from winnow.estimator import (
 # Stopping criterion
 from winnow.stopping import StoppingCriterion
 
+# Logging
+from winnow.jsonl_logging import configure_jsonl_logging
+
 # Exceptions
 from winnow.exceptions import (
     EstimationFailedError,
@@ -74,6 +77,8 @@ __all__ = [
     "OptionalIntEstimator",
     # Stopping criterion
     "StoppingCriterion",
+    # Logging
+    "configure_jsonl_logging",
     # Exceptions
     "EstimationFailedError",
     "ModelDeclinedError",
