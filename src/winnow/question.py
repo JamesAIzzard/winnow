@@ -82,3 +82,25 @@ class QuestionBank:
 
         self._current_question_uid = None
         return None
+
+    def select_wave(
+        self,
+        states: dict[str, SampleState],
+        *,
+        wave_size: int,
+    ) -> tuple[Question, ...]:
+        """Select up to wave_size incomplete questions in round-robin order.
+
+        Each question appears at most once per wave. Returns an empty tuple
+        when all questions are complete.
+        """
+        selected: list[Question] = []
+        for _ in range(wave_size):
+            question = self.select_next(states)
+            if question is None:
+                break
+            # Each question appears at most once per wave.
+            if any(q.uid == question.uid for q in selected):
+                break
+            selected.append(question)
+        return tuple(selected)

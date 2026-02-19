@@ -80,79 +80,7 @@ class TestCollectBasic:
         assert result.value is True
 
 
-class TestCollectMultipleQuestions:
-    def test_collects_all_questions(self) -> None:
-        """Verify collect handles multiple questions."""
-        response_map = {
-            "protein": iter(["31", "31", "30"]),
-            "fat": iter(["3", "4", "3"]),
-        }
-
-        async def query_fn(prompt: str) -> str:
-            if "protein" in prompt:
-                return next(response_map["protein"])
-            return next(response_map["fat"])
-
-        questions = QuestionBank(
-            [
-                Question(
-                    uid="protein",
-                    query="How many grams of protein?",
-                    parser=FloatParser(),
-                    estimator=NumericalEstimator(),
-                    stopping_criterion=StoppingCriterion(
-                        min_samples=3, max_queries=100
-                    ),
-                ),
-                Question(
-                    uid="fat",
-                    query="How many grams of fat?",
-                    parser=FloatParser(),
-                    estimator=NumericalEstimator(),
-                    stopping_criterion=StoppingCriterion(
-                        min_samples=3, max_queries=100
-                    ),
-                ),
-            ]
-        )
-
-        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
-
-        assert "protein" in results
-        assert "fat" in results
-        assert isinstance(results["protein"], Estimate)
-        assert isinstance(results["fat"], Estimate)
-
-
 class TestCollectDeclineHandling:
-    def test_handles_declines(self) -> None:
-        """Verify collect handles decline responses correctly."""
-        responses = iter(["31", "DECLINE", "31", "DECLINE", "31"])
-
-        async def query_fn(prompt: str) -> str:
-            return next(responses)
-
-        questions = QuestionBank(
-            [
-                Question(
-                    uid="protein",
-                    query="How many grams of protein?",
-                    parser=FloatParser(),
-                    estimator=NumericalEstimator(),
-                    stopping_criterion=StoppingCriterion(
-                        min_samples=3, max_queries=100
-                    ),
-                ),
-            ]
-        )
-
-        results = asyncio.run(collect(bank=questions, query_fn=query_fn))
-
-        # Declines are skipped but valid samples still produce an estimate
-        result = results["protein"]
-        assert isinstance(result, Estimate)
-        assert result.value == 31.0
-
     def test_returns_needs_review_when_all_declines(self) -> None:
         """Verify NeedsReview returned when all responses are declines."""
         responses = iter(["DECLINE"] * 10)
@@ -582,3 +510,368 @@ class TestCollectInitialStates:
 
         # Only fat was queried (3 samples), protein was skipped
         assert query_count == 3
+
+
+class TestCollectWaveBasic:
+    def test_wave_collects_multiple_questions(self) -> None:
+        """Verify wave-based collection produces estimates for all questions."""
+        response_map = {
+            "protein": iter(["31", "31", "31"]),
+            "fat": iter(["3", "3", "3"]),
+        }
+
+        async def query_fn(prompt: str) -> str:
+            if "protein" in prompt:
+                return next(response_map["protein"])
+            return next(response_map["fat"])
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=bank, query_fn=query_fn, wave_size=2)
+        )
+
+        assert isinstance(results["protein"], Estimate)
+        assert results["protein"].value == 31.0
+        assert isinstance(results["fat"], Estimate)
+        assert results["fat"].value == 3.0
+
+
+class TestCollectWaveConcurrency:
+    def test_wave_dispatches_concurrently(self) -> None:
+        """Verify queries within a wave are dispatched concurrently."""
+        in_flight: list[str] = []
+        max_concurrent = 0
+
+        async def query_fn(prompt: str) -> str:
+            nonlocal max_concurrent
+            in_flight.append(prompt)
+            max_concurrent = max(max_concurrent, len(in_flight))
+            await asyncio.sleep(0)
+            in_flight.pop()
+            if "protein" in prompt:
+                return "31"
+            return "3"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        asyncio.run(collect(bank=bank, query_fn=query_fn, wave_size=2))
+
+        assert max_concurrent == 2
+
+    def test_wave_size_larger_than_bank_caps_at_bank_size(self) -> None:
+        """Verify wave_size exceeding bank size dispatches one per question."""
+        call_count = 0
+
+        async def query_fn(prompt: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            return "31"
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=bank, query_fn=query_fn, wave_size=10)
+        )
+
+        assert isinstance(results["protein"], Estimate)
+        # Only 3 queries needed (min_samples=3), one per wave
+        assert call_count == 3
+
+
+class TestCollectWaveProgress:
+    def test_progress_called_once_per_wave(self) -> None:
+        """Verify on_progress is called once per wave, not once per query."""
+        response_map = {
+            "protein": iter(["31", "31", "31"]),
+            "fat": iter(["3", "3", "3"]),
+        }
+        progress_call_count = 0
+
+        async def query_fn(prompt: str) -> str:
+            if "protein" in prompt:
+                return next(response_map["protein"])
+            return next(response_map["fat"])
+
+        def on_progress(states: dict[str, SampleState]) -> None:
+            nonlocal progress_call_count
+            progress_call_count += 1
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        asyncio.run(
+            collect(
+                bank=bank,
+                query_fn=query_fn,
+                on_progress=on_progress,
+                wave_size=2,
+            )
+        )
+
+        # 2 questions, 3 samples each, wave_size=2 => 3 waves (one per round)
+        assert progress_call_count == 3
+
+
+class TestCollectWaveStopping:
+    def test_wave_respects_stopping_between_waves(self) -> None:
+        """Verify a question that converges mid-run is dropped from subsequent waves."""
+        call_count = 0
+
+        async def query_fn(prompt: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            if "protein" in prompt:
+                return "31"
+            # fat gives varied answers to prevent early convergence
+            return str(call_count * 10)
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=5, confidence_threshold=0.99
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=bank, query_fn=query_fn, wave_size=2)
+        )
+
+        # Protein should converge quickly with identical answers
+        assert isinstance(results["protein"], Estimate)
+        assert results["protein"].value == 31.0
+        # Fat should fail with varied answers and high threshold
+        assert isinstance(results["fat"], NeedsReview)
+
+    def test_wave_handles_mixed_declines_and_samples(self) -> None:
+        """Verify wave correctly handles a mix of declines and valid samples."""
+        response_map = {
+            "protein": iter(["31", "DECLINE", "31", "31"]),
+            "fat": iter(["DECLINE", "3", "3", "3"]),
+        }
+
+        async def query_fn(prompt: str) -> str:
+            if "protein" in prompt:
+                return next(response_map["protein"])
+            return next(response_map["fat"])
+
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+                Question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=3, max_queries=100
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=bank, query_fn=query_fn, wave_size=2)
+        )
+
+        assert isinstance(results["protein"], Estimate)
+        assert results["protein"].value == 31.0
+        assert isinstance(results["fat"], Estimate)
+        assert results["fat"].value == 3.0
+
+
+class TestSelectWave:
+    def test_selects_up_to_wave_size(self) -> None:
+        """Verify select_wave returns at most wave_size questions."""
+        bank = QuestionBank(
+            [
+                Question(
+                    uid=f"q{i}",
+                    query=f"Question {i}?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=3),
+                )
+                for i in range(5)
+            ]
+        )
+
+        states = {
+            f"q{i}": SampleState(
+                samples=(),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=NoEstimate,
+                current_confidence=0.0,
+                status=SampleStatus.PENDING,
+                failure_reason=None,
+            )
+            for i in range(5)
+        }
+
+        wave = bank.select_wave(states, wave_size=3)
+
+        assert len(wave) == 3
+
+    def test_returns_empty_when_all_complete(self) -> None:
+        """Verify select_wave returns empty tuple when no questions remain."""
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="q0",
+                    query="Question?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=1),
+                ),
+            ]
+        )
+
+        states = {
+            "q0": SampleState(
+                samples=(31.0,),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=31.0,
+                current_confidence=1.0,
+                status=SampleStatus.CONVERGED,
+                failure_reason=None,
+            ),
+        }
+
+        wave = bank.select_wave(states, wave_size=5)
+
+        assert wave == ()
+
+    def test_no_duplicate_questions_in_wave(self) -> None:
+        """Verify each question appears at most once per wave."""
+        bank = QuestionBank(
+            [
+                Question(
+                    uid="q0",
+                    query="Question?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=3),
+                ),
+            ]
+        )
+
+        states = {
+            "q0": SampleState(
+                samples=(),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=NoEstimate,
+                current_confidence=0.0,
+                status=SampleStatus.PENDING,
+                failure_reason=None,
+            ),
+        }
+
+        # wave_size=5 but only 1 question, should get 1 not 5
+        wave = bank.select_wave(states, wave_size=5)
+
+        assert len(wave) == 1
+        assert wave[0].uid == "q0"
