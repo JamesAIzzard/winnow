@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping
 
 from winnow.exceptions import ParseFailedError
 from winnow.parser.base import Parser
@@ -11,13 +11,15 @@ class FloatLiteralPairParser(Parser[tuple[float, str]]):
     """Parses a compound float-literal response such as '100 grams' or '1 whole'.
 
     The float component is extracted first, then the remainder is matched
-    against the set of known literal options.
+    against the set of known literal options (and their aliases, if provided).
+    Aliases resolve back to the canonical option name.
     """
 
     def __init__(
         self,
         literal_options: frozenset[str],
         *,
+        literal_aliases: Mapping[str, Collection[str]] | None = None,
         float_constraint: Callable[[float], bool] | None = None,
         case_sensitive: bool = False,
     ) -> None:
@@ -25,6 +27,9 @@ class FloatLiteralPairParser(Parser[tuple[float, str]]):
 
         Args:
             literal_options: The set of valid string values for the literal component.
+            literal_aliases: Optional mapping from canonical option name to
+                alternative forms (e.g. ``{"gram": ["grams", "g"]}``).
+                Each alias resolves to its canonical name during matching.
             float_constraint: Optional validation function applied to the parsed float.
                 If provided and returns False, ParseFailedError is raised.
             case_sensitive: Whether literal matching is case-sensitive.
@@ -36,6 +41,12 @@ class FloatLiteralPairParser(Parser[tuple[float, str]]):
         for option in literal_options:
             key = option if case_sensitive else option.lower()
             self._lookup[key] = option
+
+        if literal_aliases is not None:
+            for canonical, aliases in literal_aliases.items():
+                for alias in aliases:
+                    key = alias if case_sensitive else alias.lower()
+                    self._lookup[key] = canonical
 
     def parse(self, response: str) -> tuple[float, str]:
         """Parse a float-literal pair from the response.

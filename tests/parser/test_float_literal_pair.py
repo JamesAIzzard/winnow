@@ -134,3 +134,58 @@ class TestFloatLiteralPairParser:
         result = parser(response="  100   grams  ")
 
         assert result == (100.0, "grams")
+
+
+class TestLiteralAliases:
+    def test_alias_resolves_to_canonical_name(self) -> None:
+        """Verify an alias in the response resolves to the canonical option."""
+        parser = FloatLiteralPairParser(
+            literal_options=frozenset({"gram"}),
+            literal_aliases={"gram": ["grams"]},
+        )
+
+        result = parser(response="0 grams")
+
+        assert result == (0.0, "gram")
+
+    def test_canonical_name_still_accepted(self) -> None:
+        """Verify the canonical name is still matched when aliases are provided."""
+        parser = FloatLiteralPairParser(
+            literal_options=frozenset({"gram"}),
+            literal_aliases={"gram": ["grams"]},
+        )
+
+        result = parser(response="100 gram")
+
+        assert result == (100.0, "gram")
+
+    def test_multiple_aliases_for_one_option(self) -> None:
+        """Verify multiple aliases all resolve to the same canonical name."""
+        parser = FloatLiteralPairParser(
+            literal_options=frozenset({"gram"}),
+            literal_aliases={"gram": ["grams", "g"]},
+        )
+
+        assert parser(response="100 grams") == (100.0, "gram")
+        assert parser(response="100 g") == (100.0, "gram")
+
+    def test_aliases_are_case_insensitive_by_default(self) -> None:
+        """Verify alias matching respects the default case-insensitive mode."""
+        parser = FloatLiteralPairParser(
+            literal_options=frozenset({"gram"}),
+            literal_aliases={"gram": ["grams"]},
+        )
+
+        result = parser(response="50 GRAMS")
+
+        assert result == (50.0, "gram")
+
+    def test_unknown_literal_still_raises(self) -> None:
+        """Verify unrecognised literals still raise even when aliases are set."""
+        parser = FloatLiteralPairParser(
+            literal_options=frozenset({"gram"}),
+            literal_aliases={"gram": ["grams"]},
+        )
+
+        with pytest.raises(ParseFailedError):
+            parser(response="100 bananas")
