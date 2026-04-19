@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
 from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
+from winnow.llm_client import LLMClient
 from winnow.types import (
     Estimate,
     NeedsReview,
@@ -29,7 +30,7 @@ _logger = logging.getLogger("winnow")
 async def collect(
     *,
     bank: QuestionBank,
-    query_fn: Callable[[str], Awaitable[str]],
+    query_fn: LLMClient,
     on_progress: Callable[[dict[str, SampleState]], None] | None = None,
     initial_states: dict[str, SampleState] | None = None,
     wave_size: int = 1,
