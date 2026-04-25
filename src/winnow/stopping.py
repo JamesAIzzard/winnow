@@ -44,7 +44,7 @@ class StoppingCriterion:
         if state.parse_failure_count >= self.max_parse_failures:
             return True
 
-        if len(state.samples) < self.min_samples:
+        if state.stopping_sample_count < self.min_samples:
             return False
 
         return state.current_confidence >= self.confidence_threshold

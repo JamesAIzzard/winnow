@@ -72,3 +72,11 @@ class OptionalIntEstimator:
 
         # Combined confidence: both factors matter
         return applicability_confidence * value_confidence
+
+    def count_relevant_samples(
+        self, *, state: SampleState[int | None], estimate: int | None
+    ) -> int:
+        """Count samples in the branch selected by the current estimate."""
+        if estimate is None:
+            return sum(1 for sample in state.samples if sample is None)
+        return sum(1 for sample in state.samples if sample is not None)

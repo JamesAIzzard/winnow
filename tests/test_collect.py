@@ -7,9 +7,11 @@ import pytest
 from winnow.collect import collect
 from winnow.estimator.boolean import BooleanEstimator
 from winnow.estimator.numerical import NumericalEstimator
+from winnow.estimator.optional_int import OptionalIntEstimator
 from winnow.exceptions import UnknownInitialStateError
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
+from winnow.parser.optional_bounded import OptionalBoundedIntParser
 from winnow.question import Question, QuestionBank
 from winnow.stopping import StoppingCriterion
 from winnow.types import (
@@ -78,6 +80,68 @@ class TestCollectBasic:
         result = results["is_vegan"]
         assert isinstance(result, Estimate)
         assert result.value is True
+
+    def test_optional_int_requires_min_samples_from_numeric_branch(self) -> None:
+        """Verify optional integer convergence waits for enough numeric samples."""
+        responses = iter(["None", "55", "55", "55", "55", "55"])
+        progress: list[dict[str, SampleState]] = []
+
+        async def query_fn(prompt: str) -> str:
+            return next(responses)
+
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="glycaemic_index",
+                    query="What is the GI?",
+                    parser=OptionalBoundedIntParser(min_value=0, max_value=100),
+                    estimator=OptionalIntEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=5, max_queries=10, confidence_threshold=0.5
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=questions, query_fn=query_fn, on_progress=progress.append)
+        )
+
+        result = results["glycaemic_index"]
+        assert isinstance(result, Estimate)
+        assert result.value == 55
+        assert progress[-1]["glycaemic_index"].query_count == 6
+
+    def test_optional_int_requires_min_samples_from_none_branch(self) -> None:
+        """Verify optional integer convergence waits for enough None samples."""
+        responses = iter(["55", "None", "None", "None", "None", "None"])
+        progress: list[dict[str, SampleState]] = []
+
+        async def query_fn(prompt: str) -> str:
+            return next(responses)
+
+        questions = QuestionBank(
+            [
+                Question(
+                    uid="glycaemic_index",
+                    query="What is the GI?",
+                    parser=OptionalBoundedIntParser(min_value=0, max_value=100),
+                    estimator=OptionalIntEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=5, max_queries=10, confidence_threshold=0.5
+                    ),
+                ),
+            ]
+        )
+
+        results = asyncio.run(
+            collect(bank=questions, query_fn=query_fn, on_progress=progress.append)
+        )
+
+        result = results["glycaemic_index"]
+        assert isinstance(result, Estimate)
+        assert result.value is None
+        assert progress[-1]["glycaemic_index"].query_count == 6
 
 
 class TestCollectDeclineHandling:

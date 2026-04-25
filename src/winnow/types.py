@@ -59,11 +59,21 @@ class SampleState(Generic[T_co]):
     current_confidence: float
     status: SampleStatus
     failure_reason: ReviewReason | None
+    effective_sample_count: int | None = None
 
     @property
     def query_count(self) -> int:
         """Total number of queries made (successful + declined + failed)."""
         return len(self.samples) + self.decline_count + self.parse_failure_count
+
+    @property
+    def stopping_sample_count(self) -> int:
+        """Number of samples that count towards the minimum-sample floor."""
+        return (
+            self.effective_sample_count
+            if self.effective_sample_count is not None
+            else len(self.samples)
+        )
 
 
 @dataclass(frozen=True)

@@ -128,11 +128,17 @@ def _process_response(
             state=temp_state,
             estimate=estimate,
         )
+        effective_sample_count = _compute_effective_sample_count(
+            question=question,
+            state=temp_state,
+            estimate=estimate,
+        )
         states[question.uid] = _record_sample(
             state=states[question.uid],
             value=result,
             current_estimate=estimate,
             current_confidence=confidence,
+            effective_sample_count=effective_sample_count,
         )
     except ModelDeclinedError:
         states[question.uid] = _record_decline(states[question.uid])
@@ -156,6 +162,19 @@ def _state_for_samples(samples: tuple[object, ...]) -> SampleState:
         status=SampleStatus.COLLECTING,
         failure_reason=None,
     )
+
+
+def _compute_effective_sample_count(
+    *,
+    question: Question,
+    state: SampleState,
+    estimate: object,
+) -> int | None:
+    """Return estimator-specific sample count when one is defined."""
+    counter = getattr(question.estimator, "count_relevant_samples", None)
+    if not callable(counter):
+        return None
+    return counter(state=state, estimate=estimate)
 
 
 def _build_prompt(query: str) -> str:
@@ -189,6 +208,7 @@ def _record_sample(
     value: object,
     current_estimate: object,
     current_confidence: float,
+    effective_sample_count: int | None,
 ) -> SampleState:
     """Record a successful sample."""
     return SampleState(
@@ -200,6 +220,7 @@ def _record_sample(
         current_confidence=current_confidence,
         status=SampleStatus.COLLECTING,
         failure_reason=None,
+        effective_sample_count=effective_sample_count,
     )
 
 
@@ -214,6 +235,7 @@ def _record_decline(state: SampleState) -> SampleState:
         current_confidence=state.current_confidence,
         status=SampleStatus.COLLECTING,
         failure_reason=None,
+        effective_sample_count=state.effective_sample_count,
     )
 
 
@@ -228,6 +250,7 @@ def _record_parse_failure(state: SampleState) -> SampleState:
         current_confidence=state.current_confidence,
         status=SampleStatus.COLLECTING,
         failure_reason=None,
+        effective_sample_count=state.effective_sample_count,
     )
 
 
@@ -245,7 +268,7 @@ def _resolve_status(
         return state
 
     converged = (
-        len(state.samples) >= criterion.min_samples
+        state.stopping_sample_count >= criterion.min_samples
         and state.current_confidence >= criterion.confidence_threshold
     )
 
@@ -265,6 +288,7 @@ def _resolve_status(
         current_confidence=state.current_confidence,
         status=status,
         failure_reason=failure_reason,
+        effective_sample_count=state.effective_sample_count,
     )
 
 
