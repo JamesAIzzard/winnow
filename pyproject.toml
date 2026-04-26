@@ -20,6 +20,7 @@ dev = [
     "debugpy>=1.8.0",
     "ruff>=0.12.8",
     "mypy>=1.17.1",
+    "pyright>=1.1.409",
 ]
 
 [build-system]
@@ -30,6 +31,6 @@ build-backend = "hatchling.build"
 packages = ["src/winnow"]
 
 [tool.pyright]
-venvPath = "."
+venvPath = ".."
 venv = ".venv"
 typeCheckingMode = "standard"

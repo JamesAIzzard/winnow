@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, cast
 
 from winnow.config import default_config
 from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
@@ -25,6 +25,10 @@ if TYPE_CHECKING:
     from winnow.question import Question, QuestionBank
 
 _logger = logging.getLogger("winnow")
+
+
+class _RelevantSampleCounter(Protocol):
+    def __call__(self, *, state: SampleState, estimate: object) -> int: ...
 
 
 async def collect(
@@ -174,7 +178,8 @@ def _compute_effective_sample_count(
     counter = getattr(question.estimator, "count_relevant_samples", None)
     if not callable(counter):
         return None
-    return counter(state=state, estimate=estimate)
+    relevant_sample_counter = cast(_RelevantSampleCounter, counter)
+    return relevant_sample_counter(state=state, estimate=estimate)
 
 
 def _build_prompt(query: str) -> str:
