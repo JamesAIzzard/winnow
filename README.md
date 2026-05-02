@@ -79,8 +79,11 @@ You can track progress during collection using the `on_progress` callback:
 ```python
 from winnow import collect, SampleState
 
-def show_progress(states: dict[str, SampleState]) -> None:
-    for uid, state in states.items():
+def show_progress(
+    states: dict[str, SampleState], wave_uids: frozenset[str],
+) -> None:
+    for uid in wave_uids:
+        state = states[uid]
         if state.current_estimate is not None:
             print(f"{uid}: {state.current_estimate} ({state.current_confidence:.0%})")
 
@@ -91,7 +94,9 @@ results = await collect(
 )
 ```
 
-The callback receives a dictionary of `SampleState` objects, each containing:
+The callback receives the current state dict alongside `wave_uids`, the
+set of question UIDs that were just dispatched in the wave that triggered
+the callback. Each `SampleState` contains:
 - `current_estimate`: The current best estimate (or `None` if no samples yet)
 - `current_confidence`: The current confidence level (0.0 to 1.0)
 - `samples`: All collected samples so far

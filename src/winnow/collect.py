@@ -35,7 +35,7 @@ async def collect(
     *,
     bank: QuestionBank,
     query_fn: LLMClient,
-    on_progress: Callable[[dict[str, SampleState]], None] | None = None,
+    on_progress: Callable[[dict[str, SampleState], frozenset[str]], None] | None = None,
     initial_states: dict[str, SampleState] | None = None,
     wave_size: int = 1,
 ) -> dict[str, Estimate | NeedsReview]:
@@ -45,8 +45,11 @@ async def collect(
         bank: The questions to answer.
         query_fn: Async function that sends a query string to the LLM
             and returns the raw response string.
-        on_progress: Optional callback invoked after each wave with the
-            current states. Useful for displaying progress in CLI applications.
+        on_progress: Optional callback invoked after each wave with
+            ``(states, wave_uids)`` — the current states and the set of
+            question UIDs that were just dispatched in the wave that
+            triggered the callback. Useful for displaying live progress
+            in CLI applications.
         initial_states: Optional pre-populated states keyed by question UID.
             Useful for resuming from cached progress. States with
             CONVERGED status are automatically skipped by the collection loop.
@@ -83,7 +86,7 @@ async def collect(
             _process_response(question, response, states)
 
         if on_progress is not None:
-            on_progress(states)
+            on_progress(states, frozenset(q.uid for q in wave))
 
     return _build_estimates(bank.questions, states)
 

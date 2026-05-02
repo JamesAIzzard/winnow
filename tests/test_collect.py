@@ -104,7 +104,11 @@ class TestCollectBasic:
         )
 
         results = asyncio.run(
-            collect(bank=questions, query_fn=query_fn, on_progress=progress.append)
+            collect(
+                bank=questions,
+                query_fn=query_fn,
+                on_progress=lambda states, _wave: progress.append(states),
+            )
         )
 
         result = results["glycaemic_index"]
@@ -135,7 +139,11 @@ class TestCollectBasic:
         )
 
         results = asyncio.run(
-            collect(bank=questions, query_fn=query_fn, on_progress=progress.append)
+            collect(
+                bank=questions,
+                query_fn=query_fn,
+                on_progress=lambda states, _wave: progress.append(states),
+            )
         )
 
         result = results["glycaemic_index"]
@@ -273,7 +281,7 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState]) -> None:
+        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
             progress_states.append(dict(states))
 
         questions = QuestionBank(
@@ -305,7 +313,7 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState]) -> None:
+        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
             progress_states.append(dict(states))
 
         questions = QuestionBank(
@@ -334,7 +342,7 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState]) -> None:
+        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
             progress_states.append(dict(states))
 
         questions = QuestionBank(
@@ -711,7 +719,9 @@ class TestCollectWaveProgress:
                 return next(response_map["protein"])
             return next(response_map["fat"])
 
-        def on_progress(states: dict[str, SampleState]) -> None:
+        def on_progress(
+            states: dict[str, SampleState], _wave: frozenset[str],
+        ) -> None:
             nonlocal progress_call_count
             progress_call_count += 1
 
