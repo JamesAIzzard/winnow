@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import json
-import logging
 from collections.abc import Callable
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Protocol, cast
 
-from winnow.config import default_config
 from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
 from winnow.llm_client import LLMClient
 from winnow.types import (
@@ -23,8 +19,6 @@ from winnow.stopping import StoppingCriterion
 
 if TYPE_CHECKING:
     from winnow.question import Question, QuestionBank
-
-_logger = logging.getLogger("winnow")
 
 
 class _RelevantSampleCounter(Protocol):
@@ -76,13 +70,11 @@ async def collect(
         if not wave:
             break
 
-        prompts = [_build_prompt(q.query) for q in wave]
+        prompts = [q.build_prompt() for q in wave]
         responses = await asyncio.gather(*(query_fn(p) for p in prompts))
 
         for question, prompt, response in zip(wave, prompts, responses):
-            _log_exchange(
-                question_uid=question.uid, prompt=prompt, response=response,
-            )
+            question.log_exchange(prompt=prompt, response=response)
             _process_response(question, response, states)
 
         if on_progress is not None:
@@ -183,31 +175,6 @@ def _compute_effective_sample_count(
         return None
     relevant_sample_counter = cast(_RelevantSampleCounter, counter)
     return relevant_sample_counter(state=state, estimate=estimate)
-
-
-def _build_prompt(query: str) -> str:
-    """Build the full prompt including decline instruction."""
-    decline_instruction = (
-        f"If you have insufficient information to answer, "
-        f"respond with only: {default_config.decline_keyword}"
-    )
-    return f"{query}\n\n{decline_instruction}"
-
-
-def _log_exchange(
-    *,
-    question_uid: str,
-    prompt: str,
-    response: str,
-) -> None:
-    """Emit a JSONL record for a single prompt/response exchange."""
-    record = json.dumps({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "question_uid": question_uid,
-        "prompt": prompt,
-        "response": response,
-    })
-    _logger.debug(record)
 
 
 def _record_sample(

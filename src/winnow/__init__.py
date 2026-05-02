@@ -10,7 +10,7 @@ from winnow.types import Estimate, NeedsReview, NoEstimate, ReviewReason, Sample
 from winnow.question import Question, QuestionBank
 
 # LLM client
-from winnow.llm_client import LLMClient, OpenAILLMClient, ReasoningEffort
+from winnow.llm_client import LLMClient
 
 # Main entry point
 from winnow.collect import collect
@@ -54,8 +54,6 @@ from winnow.exceptions import (
 __all__ = [
     # LLM client
     "LLMClient",
-    "OpenAILLMClient",
-    "ReasoningEffort",
     # Core types
     "Estimate",
     "NeedsReview",

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Generic, TypeVar
+
+from winnow.config import default_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -13,6 +18,8 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+_logger = logging.getLogger("winnow")
+
 
 @dataclass(frozen=True)
 class Question(Generic[T]):
@@ -23,6 +30,24 @@ class Question(Generic[T]):
     parser: Parser[T]
     estimator: Estimator[T]
     stopping_criterion: StoppingCriterion
+
+    def build_prompt(self) -> str:
+        """Return the full prompt with the decline instruction appended."""
+        decline_instruction = (
+            f"If you have insufficient information to answer, "
+            f"respond with only: {default_config.decline_keyword}"
+        )
+        return f"{self.query}\n\n{decline_instruction}"
+
+    def log_exchange(self, *, prompt: str, response: str) -> None:
+        """Emit a JSONL record describing one prompt/response exchange."""
+        record = json.dumps({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "question_uid": self.uid,
+            "prompt": prompt,
+            "response": response,
+        })
+        _logger.debug(record)
 
 
 class QuestionBank:

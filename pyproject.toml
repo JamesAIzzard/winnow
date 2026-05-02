@@ -9,7 +9,6 @@ readme = "README.md"
 requires-python = ">=3.13,<4.0.0"
 dependencies = [
     "rich>=14.0.0",
-    "openai>=1.91.0",
 ]
 
 [dependency-groups]
