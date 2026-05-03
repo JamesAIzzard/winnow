@@ -8,7 +8,7 @@ import pytest
 from winnow.estimator.open_categorical import OpenCategoricalEstimator
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 
 class TestOpenCategoricalEstimatorEstimate:

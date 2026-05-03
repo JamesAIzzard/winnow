@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from winnow.estimator.numerical import NumericalEstimator
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 
 class TestNumericalEstimatorEstimate:

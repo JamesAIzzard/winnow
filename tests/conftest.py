@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from winnow.types import NoEstimate, SampleState, SampleStatus
+from winnow.state import NoEstimate, SampleState, SampleStatus
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

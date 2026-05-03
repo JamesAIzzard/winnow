@@ -8,7 +8,7 @@ import pytest
 from winnow.estimator.boolean import BooleanEstimator
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 
 class TestBooleanEstimatorEstimate:

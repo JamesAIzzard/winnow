@@ -6,16 +6,8 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
 from winnow.llm_client import LLMClient
-from winnow.types import (
-    Estimate,
-    NeedsReview,
-    NoEstimate,
-    ReviewReason,
-    SampleState,
-    SampleStatus,
-)
-
-from winnow.stopping import StoppingCriterion
+from winnow.results import Estimate, NeedsReview
+from winnow.state import NoEstimate, SampleState, SampleStatus
 
 if TYPE_CHECKING:
     from winnow.question import Question, QuestionBank
@@ -132,20 +124,19 @@ def _process_response(
             state=temp_state,
             estimate=estimate,
         )
-        states[question.uid] = _record_sample(
-            state=states[question.uid],
-            value=result,
-            current_estimate=estimate,
-            current_confidence=confidence,
+        states[question.uid] = states[question.uid].record_sample(
+            result,
+            estimate=estimate,
+            confidence=confidence,
             effective_sample_count=effective_sample_count,
         )
     except ModelDeclinedError:
-        states[question.uid] = _record_decline(states[question.uid])
+        states[question.uid] = states[question.uid].record_decline()
     except ParseFailedError:
-        states[question.uid] = _record_parse_failure(states[question.uid])
+        states[question.uid] = states[question.uid].record_parse_failure()
 
-    states[question.uid] = _resolve_status(
-        states[question.uid], question.stopping_criterion,
+    states[question.uid] = states[question.uid].resolve_status(
+        question.stopping_criterion,
     )
 
 
@@ -177,96 +168,6 @@ def _compute_effective_sample_count(
     return relevant_sample_counter(state=state, estimate=estimate)
 
 
-def _record_sample(
-    *,
-    state: SampleState,
-    value: object,
-    current_estimate: object,
-    current_confidence: float,
-    effective_sample_count: int | None,
-) -> SampleState:
-    """Record a successful sample."""
-    return SampleState(
-        samples=state.samples + (value,),
-        decline_count=state.decline_count,
-        parse_failure_count=state.parse_failure_count,
-        consecutive_declines=0,
-        current_estimate=current_estimate,
-        current_confidence=current_confidence,
-        status=SampleStatus.COLLECTING,
-        failure_reason=None,
-        effective_sample_count=effective_sample_count,
-    )
-
-
-def _record_decline(state: SampleState) -> SampleState:
-    """Record a decline from the model."""
-    return SampleState(
-        samples=state.samples,
-        decline_count=state.decline_count + 1,
-        parse_failure_count=state.parse_failure_count,
-        consecutive_declines=state.consecutive_declines + 1,
-        current_estimate=state.current_estimate,
-        current_confidence=state.current_confidence,
-        status=SampleStatus.COLLECTING,
-        failure_reason=None,
-        effective_sample_count=state.effective_sample_count,
-    )
-
-
-def _record_parse_failure(state: SampleState) -> SampleState:
-    """Record a parse failure."""
-    return SampleState(
-        samples=state.samples,
-        decline_count=state.decline_count,
-        parse_failure_count=state.parse_failure_count + 1,
-        consecutive_declines=0,
-        current_estimate=state.current_estimate,
-        current_confidence=state.current_confidence,
-        status=SampleStatus.COLLECTING,
-        failure_reason=None,
-        effective_sample_count=state.effective_sample_count,
-    )
-
-
-def _resolve_status(
-    state: SampleState,
-    criterion: StoppingCriterion,
-) -> SampleState:
-    """Set converged and failure_reason based on the stopping criterion.
-
-    If the criterion says sampling should stop, determines whether it stopped
-    successfully (converged) or unsuccessfully (failure_reason set).
-    Returns the state unchanged if sampling should continue.
-    """
-    if not criterion.should_stop(state):
-        return state
-
-    converged = (
-        state.stopping_sample_count >= criterion.min_samples
-        and state.current_confidence >= criterion.confidence_threshold
-    )
-
-    if converged:
-        status = SampleStatus.CONVERGED
-        failure_reason = None
-    else:
-        status = SampleStatus.NEEDS_REVIEW
-        failure_reason = _determine_failure_reason(state, criterion)
-
-    return SampleState(
-        samples=state.samples,
-        decline_count=state.decline_count,
-        parse_failure_count=state.parse_failure_count,
-        consecutive_declines=state.consecutive_declines,
-        current_estimate=state.current_estimate,
-        current_confidence=state.current_confidence,
-        status=status,
-        failure_reason=failure_reason,
-        effective_sample_count=state.effective_sample_count,
-    )
-
-
 def _build_estimates(
     questions: dict[str, Question],
     states: dict[str, SampleState],
@@ -288,17 +189,3 @@ def _build_estimates(
             results[q.uid] = NeedsReview(reason=state.failure_reason)
 
     return results
-
-
-def _determine_failure_reason(
-    state: SampleState,
-    criterion: StoppingCriterion,
-) -> ReviewReason:
-    """Determine why estimation failed for a question."""
-    if state.consecutive_declines >= criterion.max_consecutive_declines:
-        return ReviewReason.MAX_CONSECUTIVE_DECLINES
-    if state.parse_failure_count >= criterion.max_parse_failures:
-        return ReviewReason.MAX_PARSE_FAILURES
-    if len(state.samples) == 0:
-        return ReviewReason.MAX_QUERIES
-    return ReviewReason.INSUFFICIENT_CONFIDENCE

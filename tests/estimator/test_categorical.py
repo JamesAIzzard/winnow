@@ -5,7 +5,7 @@ from collections.abc import Callable
 from winnow.estimator.categorical import CategoricalEstimator
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 
 class TestCategoricalEstimatorEstimate:

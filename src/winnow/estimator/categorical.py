@@ -4,7 +4,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 T = TypeVar("T")
 

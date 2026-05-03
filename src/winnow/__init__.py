@@ -4,7 +4,8 @@ from __future__ import annotations
 
 
 # Core types
-from winnow.types import Estimate, NeedsReview, NoEstimate, ReviewReason, SampleState, SampleStatus
+from winnow.results import Estimate, NeedsReview
+from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
 # Question system
 from winnow.question import Question, QuestionBank

@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from winnow.config import default_config
-from winnow.types import SampleStatus
+from winnow.state import SampleStatus
 
 if TYPE_CHECKING:
-    from winnow.types import SampleState
+    from winnow.state import SampleState
 
 _TERMINAL_STATUSES = frozenset({SampleStatus.CONVERGED, SampleStatus.NEEDS_REVIEW})
 

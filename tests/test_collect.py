@@ -13,15 +13,9 @@ from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.parser.optional_bounded import OptionalBoundedIntParser
 from winnow.question import Question, QuestionBank
+from winnow.results import Estimate, NeedsReview
+from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
 from winnow.stopping import StoppingCriterion
-from winnow.types import (
-    Estimate,
-    NeedsReview,
-    NoEstimate,
-    ReviewReason,
-    SampleState,
-    SampleStatus,
-)
 
 
 class TestCollectBasic:

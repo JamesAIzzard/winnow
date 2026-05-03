@@ -10,11 +10,10 @@ from winnow.config import default_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
     from winnow.estimator.base import Estimator
     from winnow.parser.base import Parser
+    from winnow.state import SampleState
     from winnow.stopping import StoppingCriterion
-    from winnow.types import SampleState
 
 T = TypeVar("T")
 
