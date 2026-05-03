@@ -2,39 +2,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Final, Generic, TypeVar
 
 T_co = TypeVar("T_co", covariant=True)
 T = TypeVar("T")
 
 
 class _NoEstimateType:
-    """Sentinel type indicating that no estimate has been computed yet.
+    """Sentinel type for `NoEstimate`; compare with `is NoEstimate`.
 
-    This is distinct from None, which may be a legitimate estimated value
-    (e.g. for OptionalBoundedIntParser where None means 'not applicable').
-
-    A single instance is exported as ``NoEstimate``. Comparison should use
-    identity (``is``)::
-
-        if state.current_estimate is NoEstimate:
-            ...
+    Distinct from `None`, which can be a legitimate estimate value
+    (e.g. `OptionalBoundedIntParser` where `None` means 'not applicable').
     """
 
-    def __repr__(self) -> str:
-        return "NoEstimate"
 
-    def __bool__(self) -> bool:
-        return False
-
-    def __hash__(self) -> int:
-        return hash("NoEstimate")
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, _NoEstimateType)
-
-
-NoEstimate = _NoEstimateType()
+NoEstimate: Final = _NoEstimateType()
 """Sentinel value indicating no estimate has been computed yet."""
 
 
