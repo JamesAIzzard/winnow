@@ -8,10 +8,10 @@ from winnow.results import Estimate, NeedsReview
 from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
 # Question system
-from winnow.question import Question, QuestionBank
+from winnow.question import Prompt, Question, QuestionBank
 
 # LLM client
-from winnow.llm_client import LLMClient
+from winnow.llm_client import LLMClient, LoggedLLMClient, log_exchange
 
 # Main entry point
 from winnow.collect import collect
@@ -55,6 +55,8 @@ from winnow.exceptions import (
 __all__ = [
     # LLM client
     "LLMClient",
+    "LoggedLLMClient",
+    "log_exchange",
     # Core types
     "Estimate",
     "NeedsReview",
@@ -63,6 +65,7 @@ __all__ = [
     "SampleState",
     "SampleStatus",
     # Question system
+    "Prompt",
     "Question",
     "QuestionBank",
     # Main entry point

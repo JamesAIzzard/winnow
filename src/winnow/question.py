@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import json
-import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from winnow.config import default_config
@@ -17,18 +14,13 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-_logger = logging.getLogger("winnow")
-
-
 @dataclass(frozen=True)
-class Question(Generic[T]):
-    """A query paired with its parsing and estimation strategy."""
+class Prompt(Generic[T]):
+    """A query paired with the parser needed to interpret one response."""
 
     uid: str
     query: str
     parser: Parser[T]
-    estimator: Estimator[T]
-    stopping_criterion: StoppingCriterion
 
     def build_prompt(self) -> str:
         """Return the full prompt with the decline instruction appended."""
@@ -38,15 +30,41 @@ class Question(Generic[T]):
         )
         return f"{self.query}\n\n{decline_instruction}"
 
-    def log_exchange(self, *, prompt: str, response: str) -> None:
-        """Emit a JSONL record describing one prompt/response exchange."""
-        record = json.dumps({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "question_uid": self.uid,
-            "prompt": prompt,
-            "response": response,
-        })
-        _logger.debug(record)
+
+@dataclass(frozen=True, init=False)
+class Question(Generic[T]):
+    """A prompt paired with its sampling strategy."""
+
+    prompt: Prompt[T]
+    estimator: Estimator[T]
+    stopping_criterion: StoppingCriterion
+
+    def __init__(
+        self,
+        *,
+        prompt: Prompt[T],
+        estimator: Estimator[T],
+        stopping_criterion: StoppingCriterion,
+    ) -> None:
+        object.__setattr__(self, "prompt", prompt)
+        object.__setattr__(self, "estimator", estimator)
+        object.__setattr__(self, "stopping_criterion", stopping_criterion)
+
+    @property
+    def uid(self) -> str:
+        return self.prompt.uid
+
+    @property
+    def query(self) -> str:
+        return self.prompt.query
+
+    @property
+    def parser(self) -> Parser[T]:
+        return self.prompt.parser
+
+    def build_prompt(self) -> str:
+        """Return the full prompt for this question."""
+        return self.prompt.build_prompt()
 
 
 class QuestionBank:

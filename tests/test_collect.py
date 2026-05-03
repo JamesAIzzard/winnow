@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
+from typing import Any
 
 import pytest
 
@@ -12,13 +15,66 @@ from winnow.exceptions import UnknownInitialStateError
 from winnow.parser.boolean import BooleanParser
 from winnow.parser.numerical import FloatParser
 from winnow.parser.optional_bounded import OptionalBoundedIntParser
-from winnow.question import Question, QuestionBank
+from winnow.question import Prompt, Question, QuestionBank
 from winnow.results import Estimate, NeedsReview
 from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
 from winnow.stopping import StoppingCriterion
 
 
+def _question(
+    *,
+    estimator: Any,
+    stopping_criterion: StoppingCriterion,
+    prompt: Prompt[Any] | None = None,
+    uid: str | None = None,
+    query: str | None = None,
+    parser: Any | None = None,
+) -> Question[Any]:
+    if prompt is None:
+        assert uid is not None
+        assert query is not None
+        assert parser is not None
+        prompt = Prompt(uid=uid, query=query, parser=parser)
+    return Question(
+        prompt=prompt,
+        estimator=estimator,
+        stopping_criterion=stopping_criterion,
+    )
+
+
 class TestCollectBasic:
+    def test_logs_each_prompt_response_exchange(
+        self, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Verify collect logs prompt/response exchanges through the LLM wrapper."""
+
+        async def query_fn(prompt: str) -> str:
+            return "31"
+
+        questions = QuestionBank(
+            [
+                _question(
+                    prompt=Prompt(
+                        uid="protein",
+                        query="How many grams of protein?",
+                        parser=FloatParser(),
+                    ),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=2),
+                ),
+            ]
+        )
+
+        with caplog.at_level(logging.DEBUG, logger="winnow"):
+            results = asyncio.run(collect(bank=questions, query_fn=query_fn))
+
+        assert isinstance(results["protein"], Estimate)
+        assert len(caplog.records) == 2
+        record = json.loads(caplog.records[0].message)
+        assert record["question_uid"] == "protein"
+        assert record["prompt"] == questions.questions["protein"].build_prompt()
+        assert record["response"] == "31"
+
     def test_collects_numerical_samples(self) -> None:
         """Verify collect gathers numerical samples and produces estimate."""
         responses = iter(["31", "30", "31", "32", "31"])
@@ -28,7 +84,7 @@ class TestCollectBasic:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -56,7 +112,7 @@ class TestCollectBasic:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="is_vegan",
                     query="Is this vegan?",
                     parser=BooleanParser(),
@@ -85,7 +141,7 @@ class TestCollectBasic:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="glycaemic_index",
                     query="What is the GI?",
                     parser=OptionalBoundedIntParser(min_value=0, max_value=100),
@@ -120,7 +176,7 @@ class TestCollectBasic:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="glycaemic_index",
                     query="What is the GI?",
                     parser=OptionalBoundedIntParser(min_value=0, max_value=100),
@@ -156,7 +212,7 @@ class TestCollectDeclineHandling:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -182,7 +238,7 @@ class TestCollectParseFailures:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -216,7 +272,7 @@ class TestCollectStoppingCriteria:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -246,7 +302,7 @@ class TestCollectConfidence:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -280,7 +336,7 @@ class TestCollectProgressConvergence:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -312,7 +368,7 @@ class TestCollectProgressConvergence:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -341,7 +397,7 @@ class TestCollectProgressConvergence:
 
         questions = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -371,7 +427,7 @@ class TestCollectInitialStates:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -413,7 +469,7 @@ class TestCollectInitialStates:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -462,7 +518,7 @@ class TestCollectInitialStates:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -471,7 +527,7 @@ class TestCollectInitialStates:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -525,7 +581,7 @@ class TestCollectInitialStates:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -534,7 +590,7 @@ class TestCollectInitialStates:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -593,7 +649,7 @@ class TestCollectWaveBasic:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -602,7 +658,7 @@ class TestCollectWaveBasic:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -642,7 +698,7 @@ class TestCollectWaveConcurrency:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -651,7 +707,7 @@ class TestCollectWaveConcurrency:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -678,7 +734,7 @@ class TestCollectWaveConcurrency:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -721,7 +777,7 @@ class TestCollectWaveProgress:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -730,7 +786,7 @@ class TestCollectWaveProgress:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -770,7 +826,7 @@ class TestCollectWaveStopping:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -779,7 +835,7 @@ class TestCollectWaveStopping:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -815,7 +871,7 @@ class TestCollectWaveStopping:
 
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="protein",
                     query="How many grams of protein?",
                     parser=FloatParser(),
@@ -824,7 +880,7 @@ class TestCollectWaveStopping:
                         min_samples=3, max_queries=100
                     ),
                 ),
-                Question(
+                _question(
                     uid="fat",
                     query="How many grams of fat?",
                     parser=FloatParser(),
@@ -851,7 +907,7 @@ class TestSelectWave:
         """Verify select_wave returns at most wave_size questions."""
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid=f"q{i}",
                     query=f"Question {i}?",
                     parser=FloatParser(),
@@ -884,7 +940,7 @@ class TestSelectWave:
         """Verify select_wave returns empty tuple when no questions remain."""
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="q0",
                     query="Question?",
                     parser=FloatParser(),
@@ -915,7 +971,7 @@ class TestSelectWave:
         """Verify each question appears at most once per wave."""
         bank = QuestionBank(
             [
-                Question(
+                _question(
                     uid="q0",
                     query="Question?",
                     parser=FloatParser(),

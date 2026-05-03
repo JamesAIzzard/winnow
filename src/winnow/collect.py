@@ -5,7 +5,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol, cast
 
 from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
-from winnow.llm_client import LLMClient
+from winnow.llm_client import LLMClient, LoggedLLMClient
 from winnow.results import Estimate, NeedsReview
 from winnow.state import NoEstimate, SampleState, SampleStatus
 
@@ -56,17 +56,18 @@ async def collect(
             raise UnknownInitialStateError(unknown_uids=unknown_uids)
 
     states = _initialise_states(bank, initial_states)
+    logged_query_fn = LoggedLLMClient(query_fn=query_fn)
 
     while True:
         wave = bank.select_wave(states, wave_size=wave_size)
         if not wave:
             break
 
-        prompts = [q.build_prompt() for q in wave]
-        responses = await asyncio.gather(*(query_fn(p) for p in prompts))
+        responses = await asyncio.gather(
+            *(logged_query_fn.query_prompt(q.prompt) for q in wave),
+        )
 
-        for question, prompt, response in zip(wave, prompts, responses):
-            question.log_exchange(prompt=prompt, response=response)
+        for question, response in zip(wave, responses):
             _process_response(question, response, states)
 
         if on_progress is not None:
