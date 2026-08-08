@@ -2,23 +2,19 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from winnow.exceptions import (
+from .exceptions import (
     ModelDeclinedError,
     ParseFailedError,
     UnknownInitialStateError,
 )
-from winnow.llm_client import LLMClient, LoggedLLMClient
-from winnow.results import Estimate, NeedsReview
-from winnow.state import NoEstimate, SampleState, SampleStatus
+from .exchange.client import ExchangeRecordingClient, LLMClient
+from .results import Estimate, NeedsReview
+from .state import NoEstimate, SampleState, SampleStatus
 
 if TYPE_CHECKING:
-    from winnow.question import Question, QuestionBank
-
-
-class _RelevantSampleCounter(Protocol):
-    def __call__(self, *, state: SampleState, estimate: object) -> int: ...
+    from .question import Question, QuestionBank
 
 
 async def collect(
@@ -29,38 +25,11 @@ async def collect(
     initial_states: dict[str, SampleState] | None = None,
     wave_size: int = 1,
 ) -> dict[str, Estimate | NeedsReview]:
-    """Collect estimates for all questions in the bank.
+    """Collect estimates for all questions in the bank."""
 
-    Args:
-        bank: The questions to answer.
-        query_fn: Async function that sends a query string to the LLM
-            and returns the raw response string.
-        on_progress: Optional callback invoked after each wave with
-            ``(states, wave_uids)`` — the current states and the set of
-            question UIDs that were just dispatched in the wave that
-            triggered the callback. Useful for displaying live progress
-            in CLI applications.
-        initial_states: Optional pre-populated states keyed by question UID.
-            Useful for resuming from cached progress. States with
-            CONVERGED status are automatically skipped by the collection loop.
-        wave_size: Maximum number of queries dispatched concurrently per
-            wave. Defaults to 1 (sequential behaviour).
-
-    Returns:
-        Mapping from question UID to either an Estimate (successful) or
-        NeedsReview (collection failed and the item needs manual review).
-
-    Raises:
-        UnknownInitialStateError: If initial_states contains UIDs not
-            present in the question bank.
-    """
-    if initial_states is not None:
-        unknown_uids = initial_states.keys() - bank.questions.keys()
-        if unknown_uids:
-            raise UnknownInitialStateError(unknown_uids=unknown_uids)
-
+    _validate_initial_state_uids(bank, initial_states)
     states = _initialise_states(bank, initial_states)
-    logged_query_fn = LoggedLLMClient(query_fn=query_fn)
+    exchange_client = ExchangeRecordingClient(query_fn=query_fn)
 
     while True:
         wave = bank.select_wave(states, wave_size=wave_size)
@@ -68,7 +37,7 @@ async def collect(
             break
 
         responses = await asyncio.gather(
-            *(logged_query_fn.query_prompt(q.prompt) for q in wave),
+            *(exchange_client.query_prompt(q.prompt) for q in wave),
         )
 
         for question, response in zip(wave, responses):
@@ -80,11 +49,25 @@ async def collect(
     return _build_estimates(bank.questions, states)
 
 
+def _validate_initial_state_uids(
+    bank: QuestionBank,
+    initial_states: dict[str, SampleState] | None,
+) -> None:
+    """Reject initial states that do not belong to a question in the bank."""
+    if initial_states is None:
+        return
+
+    unknown_uids = initial_states.keys() - bank.questions.keys()
+    if unknown_uids:
+        raise UnknownInitialStateError(unknown_uids=unknown_uids)
+
+
 def _initialise_states(
     bank: QuestionBank,
     initial_states: dict[str, SampleState] | None,
 ) -> dict[str, SampleState]:
     """Build initial state mapping for all questions in the bank."""
+
     return {
         q.uid: (
             initial_states[q.uid]
@@ -97,6 +80,7 @@ def _initialise_states(
 
 def _make_empty_state() -> SampleState:
     """Create a blank state for a question that has not yet been sampled."""
+
     return SampleState(
         samples=(),
         decline_count=0,
@@ -166,11 +150,10 @@ def _compute_effective_sample_count(
     estimate: object,
 ) -> int | None:
     """Return estimator-specific sample count when one is defined."""
-    counter = getattr(question.estimator, "count_relevant_samples", None)
-    if not callable(counter):
+    estimator = question.estimator
+    if not isinstance(estimator, _RelevantSampleCountingEstimator):
         return None
-    relevant_sample_counter = cast(_RelevantSampleCounter, counter)
-    return relevant_sample_counter(state=state, estimate=estimate)
+    return estimator.count_relevant_samples(state=state, estimate=estimate)
 
 
 def _build_estimates(
@@ -194,3 +177,15 @@ def _build_estimates(
             results[q.uid] = NeedsReview(reason=state.failure_reason)
 
     return results
+
+
+@runtime_checkable
+class _RelevantSampleCountingEstimator(Protocol):
+    """Estimator that defines which samples count towards its stopping floor."""
+
+    def count_relevant_samples(
+        self,
+        *,
+        state: SampleState,
+        estimate: object,
+    ) -> int: ...

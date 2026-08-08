@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import json
-import logging
-import asyncio
-
 import pytest
 
 from winnow.config import default_config
@@ -67,28 +63,3 @@ class TestQuestionComposition:
     ) -> None:
         """Verify question remains a pure sampling value."""
         assert not hasattr(sample_question, "log_exchange")
-
-
-class TestLoggedLLMClient:
-    def test_emits_jsonl_record_to_winnow_logger(
-        self, caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Verify logged client writes a JSON record to the 'winnow' logger."""
-        from winnow.llm_client import LoggedLLMClient
-
-        async def query_fn(prompt: str) -> str:
-            return f"response to {prompt}"
-
-        client = LoggedLLMClient(query_fn=query_fn)
-        source = Prompt(uid="protein", query="prompt body", parser=FloatParser())
-
-        with caplog.at_level(logging.DEBUG, logger="winnow"):
-            response = asyncio.run(client.query_prompt(source))
-
-        assert len(caplog.records) == 1
-        record = json.loads(caplog.records[0].message)
-        assert response == f"response to {source.build_prompt()}"
-        assert record["question_uid"] == source.uid
-        assert record["prompt"] == source.build_prompt()
-        assert record["response"] == response
-        assert "timestamp" in record

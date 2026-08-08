@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
-import logging
 from typing import Any
 
 import pytest
@@ -43,38 +41,6 @@ def _question(
 
 
 class TestCollectBasic:
-    def test_logs_each_prompt_response_exchange(
-        self, caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Verify collect logs prompt/response exchanges through the LLM wrapper."""
-
-        async def query_fn(prompt: str) -> str:
-            return "31"
-
-        questions = QuestionBank(
-            [
-                _question(
-                    prompt=Prompt(
-                        uid="protein",
-                        query="How many grams of protein?",
-                        parser=FloatParser(),
-                    ),
-                    estimator=NumericalEstimator(),
-                    stopping_criterion=StoppingCriterion(min_samples=2),
-                ),
-            ]
-        )
-
-        with caplog.at_level(logging.DEBUG, logger="winnow"):
-            results = asyncio.run(collect(bank=questions, query_fn=query_fn))
-
-        assert isinstance(results["protein"], Estimate)
-        assert len(caplog.records) == 2
-        record = json.loads(caplog.records[0].message)
-        assert record["question_uid"] == "protein"
-        assert record["prompt"] == questions.questions["protein"].build_prompt()
-        assert record["response"] == "31"
-
     def test_collects_numerical_samples(self) -> None:
         """Verify collect gathers numerical samples and produces estimate."""
         responses = iter(["31", "30", "31", "32", "31"])

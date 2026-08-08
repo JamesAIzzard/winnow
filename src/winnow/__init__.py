@@ -24,11 +24,9 @@ from winnow.exceptions import (
     WinnowError,
 )
 
-# Logging
-from winnow.jsonl_logging import configure_jsonl_logging
-
-# LLM client
-from winnow.llm_client import LLMClient
+# Exchange boundary
+from winnow.exchange.client import LLMClient
+from winnow.exchange.logging import configure_jsonl_logging
 
 # Parser package
 from winnow.parser import (
