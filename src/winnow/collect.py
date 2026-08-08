@@ -4,7 +4,11 @@ import asyncio
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol, cast
 
-from winnow.exceptions import ModelDeclinedError, ParseFailedError, UnknownInitialStateError
+from winnow.exceptions import (
+    ModelDeclinedError,
+    ParseFailedError,
+    UnknownInitialStateError,
+)
 from winnow.llm_client import LLMClient, LoggedLLMClient
 from winnow.results import Estimate, NeedsReview
 from winnow.state import NoEstimate, SampleState, SampleStatus
