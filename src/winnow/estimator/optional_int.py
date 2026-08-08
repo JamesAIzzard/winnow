@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from winnow.util import mad, median
+from .base import Estimator
+from .statistics import mad, median
 
 if TYPE_CHECKING:
     from winnow.state import SampleState
 
 
-class OptionalIntEstimator:
+class OptionalIntEstimator(Estimator[int | None]):
     """Consensus estimation for optional integer values.
 
     Handles samples that may be integers or None. If the majority of samples

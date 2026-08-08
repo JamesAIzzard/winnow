@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from winnow.util import mad, median
+from .base import Estimator
+from .statistics import mad, median
 
 if TYPE_CHECKING:
     from winnow.state import SampleState
 
 
-class NumericalEstimator:
+class NumericalEstimator(Estimator[float]):
     """Consensus estimation for continuous numerical values.
 
     Uses the median as the point estimate and robust coefficient of variation

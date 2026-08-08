@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, TypeVar
+
+from .base import Estimator
 
 if TYPE_CHECKING:
     from winnow.state import SampleState
@@ -9,7 +11,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class OpenCategoricalEstimator(Generic[T]):
+class OpenCategoricalEstimator(Estimator[T]):
     """Consensus estimation for categorical values from an unbounded option set.
 
     Uses the mode as the point estimate and raw agreement (the fraction of
