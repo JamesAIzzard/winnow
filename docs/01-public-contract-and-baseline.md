@@ -18,7 +18,7 @@ No deprecated compatibility exports are planned. Winnow is at version `0.1.0`, a
 
 ## 3. Planned Changes
 
-Add a facade contract test that imports the documented API from `winnow` and checks `winnow.__all__` explicitly. The test should fail if a public name disappears or a private implementation name is added unintentionally.
+Remove `LoggedLLMClient` and `log_exchange` from the package facade. The `__all__` declaration remains the single source of truth for the public contract; no test duplicates its contents.
 
 Retain the existing behavioural tests as the migration baseline. Record the existing Ruff findings so later phases distinguish pre-existing style debt from new failures.
 
@@ -28,8 +28,8 @@ This phase does not move modules, rename `LLMClient`, change collection behaviou
 
 ## 5. Verification
 
-Run the complete test suite, Ruff, mypy and Pyright. Confirm that the facade test passes and that the reported Ruff delta contains no new findings.
+Run the complete test suite, Ruff, mypy and Pyright. Confirm that the reported Ruff delta contains no new findings.
 
 ## 6. Exit Criteria
 
-The intended public names are executable and type-checkable from `winnow`. `LoggedLLMClient` and `log_exchange` are no longer public. All existing behaviour remains unchanged.
+The intended public contract is defined by `winnow.__all__`. `LoggedLLMClient` and `log_exchange` are no longer public. All existing behaviour remains unchanged.

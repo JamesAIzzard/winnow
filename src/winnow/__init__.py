@@ -28,7 +28,7 @@ from winnow.exceptions import (
 from winnow.jsonl_logging import configure_jsonl_logging
 
 # LLM client
-from winnow.llm_client import LLMClient, LoggedLLMClient, log_exchange
+from winnow.llm_client import LLMClient
 
 # Parser package
 from winnow.parser import (
@@ -61,7 +61,6 @@ __all__ = [
     "FloatParser",
     "LLMClient",
     "LiteralParser",
-    "LoggedLLMClient",
     "ModelDeclinedError",
     "NeedsReview",
     "NoEstimate",
@@ -82,5 +81,4 @@ __all__ = [
     "WinnowError",
     "collect",
     "configure_jsonl_logging",
-    "log_exchange",
 ]
