@@ -22,12 +22,6 @@ Build the distribution and inspect its contents. Confirm that `src/winnow/py.typ
 
 Confirm that obsolete `util.py`, `llm_client.py` and `jsonl_logging.py` modules are absent from the built package. Import the documented facade from the built distribution in a clean environment.
 
-## 4. Downstream Validation
-
-Run the relevant Dietrix tests against the migrated Winnow package. Known Dietrix callers primarily use the top-level facade and do not use `LoggedLLMClient` or `log_exchange`.
-
-Dietrix currently contains a small number of direct `winnow.exceptions` and `winnow.parser` imports. They are not broken by this migration because those modules remain in place. Moving those callers to the facade is a separate downstream cleanup, not a condition for restructuring Winnow.
-
 ## 5. Full Verification
 
 Run:
@@ -35,8 +29,7 @@ Run:
 - the complete Winnow test suite;
 - Ruff, comparing any remaining findings with the recorded baseline;
 - mypy and Pyright;
-- a clean package build and facade import smoke test; and
-- the relevant Dietrix tests.
+- a clean package build and facade import smoke test;
 
 Review the final source and test trees against `00-migration-overview.md`. Check that no compatibility shim or temporary migration file remains unintentionally.
 
