@@ -2,90 +2,87 @@
 
 Statistically robust data extraction from large language models.
 
-## Simple Usage Example
+Winnow treats an LLM as a stochastic oracle. It repeatedly asks the same questions and applies statistical estimation until each answer converges or requires review.
 
-Winnow treats an LLM as a stochastic oracle—repeatedly querying it and using statistical methods to derive confident estimates.
+## Usage
 
 ```python
 import asyncio
+
 from winnow import (
+    Estimate,
+    FloatParser,
+    NeedsReview,
+    NumericalEstimator,
+    Prompt,
     Question,
     QuestionBank,
-    collect,
-    FloatParser,
-    NumericalEstimator,
     StoppingCriterion,
+    collect,
 )
 
 
-async def main():
-    # Define your LLM query function
-    async def query_llm(prompt: str) -> str:
-        # Replace with your actual LLM call
-        response = await your_llm_client.query(prompt)
-        return response
+async def query_llm(prompt: str) -> str:
+    response = await your_llm_client.query(prompt)
+    return response
 
-    # Create a bank of questions to ask
+
+async def main() -> None:
     bank = QuestionBank([
         Question(
-            uid="protein",
-            query="How many grams of protein are in 100g of chicken breast?",
-            parser=FloatParser(),
+            prompt=Prompt(
+                uid="protein",
+                query="How many grams of protein are in 100g of chicken breast?",
+                parser=FloatParser(),
+            ),
             estimator=NumericalEstimator(),
-            stopping_criterion=StoppingCriterion(min_samples=5),
+            stopping_criterion=StoppingCriterion(),
         ),
     ])
 
-    # Collect estimates by repeatedly querying the LLM
     results = await collect(bank=bank, query_fn=query_llm)
+    result = results["protein"]
 
-    # Each result contains a value and confidence score
-    estimate = results["protein"]
-    print(f"Protein: {estimate.value}g (confidence: {estimate.confidence:.0%})")
+    if isinstance(result, Estimate):
+        print(f"Protein: {result.value}g ({result.confidence:.0%} confidence)")
+    elif isinstance(result, NeedsReview):
+        print(f"Protein needs review: {result.reason.value}")
 
 
 asyncio.run(main())
 ```
 
-### How It Works
+Each question combines a `Prompt`, parser, estimator and `StoppingCriterion`. `collect()` returns an `Estimate` when sampling converges or `NeedsReview` when it stops without sufficient confidence.
 
-1. **Define questions** with a unique ID, prompt text, parser, and estimator
-2. **Provide a query function** that sends prompts to your LLM
-3. **Call `collect()`** which repeatedly queries the LLM until confidence thresholds are met
-4. **Use the results** — each estimate includes both a value and a confidence score
+## Available Components
 
-### Available Components
+| Parser | Estimator | Use case |
+| --- | --- | --- |
+| `FloatParser` | `NumericalEstimator` | Numerical values using the median |
+| `BooleanParser` | `BooleanEstimator` | Boolean values using majority agreement |
+| `LiteralParser` | `CategoricalEstimator` | Values from a fixed set of options |
+| `FloatLiteralPairParser` | `OpenCategoricalEstimator` | Compound numerical and categorical values |
+| `OptionalBoundedIntParser` | `OptionalIntEstimator` | Bounded integers that may not apply |
 
-| Parsers | Estimators | Use Case |
-|---------|------------|----------|
-| `FloatParser` | `NumericalEstimator` | Numeric values (uses median) |
-| `BooleanParser` | `BooleanEstimator` | Yes/no questions (uses majority vote) |
-| `LiteralParser` | `CategoricalEstimator` | Fixed set of options (uses mode) |
+## Progress Reporting
 
-### Handling Uncertainty
-
-If the LLM's responses are inconsistent, the confidence score will be low. You can use this to flag results for human review:
+`on_progress` is called once after each completed wave:
 
 ```python
-for uid, estimate in results.items():
-    if estimate.confidence < 0.8:
-        print(f"Warning: {uid} has low confidence ({estimate.confidence:.0%})")
-```
+from winnow import CollectionProgress, NoEstimate
 
-### Progress Tracking
 
-You can track progress during collection using the `on_progress` callback:
+def show_progress(progress: CollectionProgress) -> None:
+    for interaction in progress.new_interactions:
+        print(f"{interaction.question_uid}: {interaction.raw_response}")
 
-```python
-from winnow import collect, SampleState
+    for question_uid, state in progress.sample_states.items():
+        if state.current_estimate is not NoEstimate:
+            print(
+                f"{question_uid}: {state.current_estimate} "
+                f"({state.current_confidence:.0%})"
+            )
 
-def show_progress(
-    states: dict[str, SampleState], wave_uids: frozenset[str],
-) -> None:
-    for uid in wave_uids:
-        state = states[uid]
-        if state.current_estimate is not None:
-            print(f"{uid}: {state.current_estimate} ({state.current_confidence:.0%})")
 
 results = await collect(
     bank=bank,
@@ -94,10 +91,4 @@ results = await collect(
 )
 ```
 
-The callback receives the current state dict alongside `wave_uids`, the
-set of question UIDs that were just dispatched in the wave that triggered
-the callback. Each `SampleState` contains:
-- `current_estimate`: The current best estimate (or `None` if no samples yet)
-- `current_confidence`: The current confidence level (0.0 to 1.0)
-- `samples`: All collected samples so far
-- `query_count`: Total queries made (including declines and parse failures)
+`sample_states` contains the current cumulative state of every question. `new_interactions` contains only the prompts and raw responses completed in that wave, including responses that were declined or could not be parsed. Winnow does not retain progress history for the caller; copy or persist the values during the callback when history is required.
