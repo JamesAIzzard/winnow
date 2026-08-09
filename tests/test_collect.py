@@ -8,6 +8,7 @@ import pytest
 from winnow import (
     BooleanEstimator,
     BooleanParser,
+    CollectionProgress,
     Estimate,
     FloatParser,
     NeedsReview,
@@ -131,7 +132,9 @@ class TestCollectBasic:
             collect(
                 bank=questions,
                 query_fn=query_fn,
-                on_progress=lambda states, _wave: progress.append(states),
+                on_progress=lambda event: progress.append(
+                    dict(event.sample_states)
+                ),
             )
         )
 
@@ -166,7 +169,9 @@ class TestCollectBasic:
             collect(
                 bank=questions,
                 query_fn=query_fn,
-                on_progress=lambda states, _wave: progress.append(states),
+                on_progress=lambda event: progress.append(
+                    dict(event.sample_states)
+                ),
             )
         )
 
@@ -305,8 +310,8 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
-            progress_states.append(dict(states))
+        def on_progress(progress: CollectionProgress) -> None:
+            progress_states.append(dict(progress.sample_states))
 
         questions = QuestionBank(
             [
@@ -337,8 +342,8 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
-            progress_states.append(dict(states))
+        def on_progress(progress: CollectionProgress) -> None:
+            progress_states.append(dict(progress.sample_states))
 
         questions = QuestionBank(
             [
@@ -366,8 +371,8 @@ class TestCollectProgressConvergence:
         async def query_fn(prompt: str) -> str:
             return next(responses)
 
-        def on_progress(states: dict[str, SampleState], _wave: frozenset[str]) -> None:
-            progress_states.append(dict(states))
+        def on_progress(progress: CollectionProgress) -> None:
+            progress_states.append(dict(progress.sample_states))
 
         questions = QuestionBank(
             [
@@ -780,9 +785,7 @@ class TestCollectWaveProgress:
                 return next(response_map["protein"])
             return next(response_map["fat"])
 
-        def on_progress(
-            states: dict[str, SampleState], _wave: frozenset[str],
-        ) -> None:
+        def on_progress(_progress: CollectionProgress) -> None:
             nonlocal progress_call_count
             progress_call_count += 1
 
@@ -820,6 +823,60 @@ class TestCollectWaveProgress:
 
         # 2 questions, 3 samples each, wave_size=2 => 3 waves (one per round)
         assert progress_call_count == 3
+
+    def test_progress_contains_states_and_new_interactions(self) -> None:
+        progress_events: list[CollectionProgress] = []
+
+        async def query_fn(prompt: str) -> str:
+            return "31" if "protein" in prompt else "not a number"
+
+        bank = QuestionBank(
+            [
+                _question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        min_samples=1,
+                        confidence_threshold=0.0,
+                    ),
+                ),
+                _question(
+                    uid="fat",
+                    query="How many grams of fat?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(
+                        max_parse_failures=1,
+                    ),
+                ),
+            ]
+        )
+
+        asyncio.run(
+            collect(
+                bank=bank,
+                query_fn=query_fn,
+                on_progress=progress_events.append,
+                wave_size=2,
+            )
+        )
+
+        assert len(progress_events) == 1
+        progress = progress_events[0]
+        assert tuple(
+            interaction.question_uid
+            for interaction in progress.new_interactions
+        ) == ("protein", "fat")
+        assert progress.new_interactions[0].raw_response == "31"
+        assert progress.new_interactions[1].raw_response == "not a number"
+        assert "How many grams of protein?" in progress.new_interactions[0].prompt
+        assert "DECLINE" in progress.new_interactions[0].prompt
+        assert "How many grams of fat?" in progress.new_interactions[1].prompt
+        assert "DECLINE" in progress.new_interactions[1].prompt
+        assert progress.sample_states["protein"].query_count == 1
+        assert progress.sample_states["fat"].parse_failure_count == 1
 
 
 class TestCollectWaveStopping:

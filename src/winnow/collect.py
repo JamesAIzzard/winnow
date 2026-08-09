@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from .exceptions import (
@@ -10,6 +9,8 @@ from .exceptions import (
     UnknownInitialStateError,
 )
 from .exchange.client import ExchangeRecordingClient, LLMClient
+from .progress import CollectionProgress, ProgressCallback, SampleStates
+from .question import QuestionUID
 from .results import Estimate, NeedsReview
 from .state import NoEstimate, SampleState, SampleStatus
 
@@ -21,10 +22,10 @@ async def collect(
     *,
     bank: QuestionBank,
     query_fn: LLMClient,
-    on_progress: Callable[[dict[str, SampleState], frozenset[str]], None] | None = None,
-    initial_states: dict[str, SampleState] | None = None,
+    on_progress: ProgressCallback | None = None,
+    initial_states: SampleStates | None = None,
     wave_size: int = 1,
-) -> dict[str, Estimate | NeedsReview]:
+) -> dict[QuestionUID, Estimate | NeedsReview]:
     """Collect estimates for all questions in the bank."""
 
     _validate_initial_state_uids(bank, initial_states)
@@ -44,14 +45,17 @@ async def collect(
             _process_response(question, interaction.raw_response, states)
 
         if on_progress is not None:
-            on_progress(states, frozenset(q.uid for q in wave))
+            on_progress(CollectionProgress(
+                sample_states=states,
+                new_interactions=tuple(interactions),
+            ))
 
     return _build_estimates(bank.questions, states)
 
 
 def _validate_initial_state_uids(
     bank: QuestionBank,
-    initial_states: dict[str, SampleState] | None,
+    initial_states: SampleStates | None,
 ) -> None:
     """Reject initial states that do not belong to a question in the bank."""
     if initial_states is None:
@@ -64,8 +68,8 @@ def _validate_initial_state_uids(
 
 def _initialise_states(
     bank: QuestionBank,
-    initial_states: dict[str, SampleState] | None,
-) -> dict[str, SampleState]:
+    initial_states: SampleStates | None,
+) -> dict[QuestionUID, SampleState]:
     """Build initial state mapping for all questions in the bank."""
 
     return {
@@ -96,7 +100,7 @@ def _make_empty_state() -> SampleState:
 def _process_response(
     question: Question,
     response: str,
-    states: dict[str, SampleState],
+    states: dict[QuestionUID, SampleState],
 ) -> None:
     """Parse a single response and update the question's state in place."""
     try:
@@ -157,11 +161,11 @@ def _compute_effective_sample_count(
 
 
 def _build_estimates(
-    questions: dict[str, Question],
-    states: dict[str, SampleState],
-) -> dict[str, Estimate | NeedsReview]:
+    questions: dict[QuestionUID, Question],
+    states: dict[QuestionUID, SampleState],
+) -> dict[QuestionUID, Estimate | NeedsReview]:
     """Build final estimates from collected states."""
-    results: dict[str, Estimate | NeedsReview] = {}
+    results: dict[QuestionUID, Estimate | NeedsReview] = {}
 
     for q in questions.values():
         state = states[q.uid]
