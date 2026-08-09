@@ -36,12 +36,12 @@ async def collect(
         if not wave:
             break
 
-        responses = await asyncio.gather(
+        interactions = await asyncio.gather(
             *(exchange_client.query_prompt(q.prompt) for q in wave),
         )
 
-        for question, response in zip(wave, responses):
-            _process_response(question, response, states)
+        for question, interaction in zip(wave, interactions):
+            _process_response(question, interaction.raw_response, states)
 
         if on_progress is not None:
             on_progress(states, frozenset(q.uid for q in wave))

@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from winnow import QuestionInteraction
 from winnow.exchange.client import ExchangeRecordingClient
 from winnow.parser.numerical import FloatParser
 from winnow.question import Prompt
@@ -30,18 +31,22 @@ class TestExchangeRecordingClient:
         client = ExchangeRecordingClient(query_fn=query_fn)
         prompt = Prompt(uid="protein", query="prompt body", parser=FloatParser())
 
-        response = asyncio.run(client.query_prompt(prompt))
+        interaction = asyncio.run(client.query_prompt(prompt))
 
         prompt_body = prompt.build_prompt()
-        assert response == f"response to {prompt_body}"
+        assert interaction == QuestionInteraction(
+            question_uid="protein",
+            prompt=prompt_body,
+            raw_response=f"response to {prompt_body}",
+        )
         assert events == [
             ("query", prompt_body),
             (
                 "record",
                 {
-                    "uid": prompt.uid,
-                    "prompt": prompt_body,
-                    "response": response,
+                    "uid": interaction.question_uid,
+                    "prompt": interaction.prompt,
+                    "response": interaction.raw_response,
                 },
             ),
         ]
