@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -10,12 +8,6 @@ from winnow.state import NoEstimate, SampleState, SampleStatus
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-# Ensure the src/ directory is on sys.path so tests can import the package
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 
 @pytest.fixture

@@ -3,14 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from winnow.config import default_config
+from .config import default_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from winnow.estimator.base import Estimator
-    from winnow.parser.base import Parser
-    from winnow.state import SampleState
-    from winnow.stopping import StoppingCriterion
+
+    from .estimator.base import Estimator
+    from .parser.base import Parser
+    from .state import SampleState
+    from .stopping import StoppingCriterion
 
 T = TypeVar("T")
 

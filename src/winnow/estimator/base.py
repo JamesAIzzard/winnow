@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 if TYPE_CHECKING:
-    from winnow.state import SampleState
+    from ..state import SampleState
 
 T = TypeVar("T")
 

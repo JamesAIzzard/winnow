@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from winnow.state import ReviewReason
+from .state import ReviewReason
 
 T = TypeVar("T")
 

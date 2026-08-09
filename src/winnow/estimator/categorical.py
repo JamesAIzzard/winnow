@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypeVar
 from .base import Estimator
 
 if TYPE_CHECKING:
-    from winnow.state import SampleState
+    from ..state import SampleState
 
 T = TypeVar("T")
 

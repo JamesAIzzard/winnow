@@ -3,8 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from winnow.config import default_config
-from winnow.exceptions import ModelDeclinedError
+from ..config import default_config
+from ..exceptions import ModelDeclinedError
 
 T = TypeVar("T")
 

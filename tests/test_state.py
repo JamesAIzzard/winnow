@@ -1,7 +1,12 @@
 from __future__ import annotations
 
-from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
-from winnow.stopping import StoppingCriterion
+from winnow import (
+    NoEstimate,
+    ReviewReason,
+    SampleState,
+    SampleStatus,
+    StoppingCriterion,
+)
 
 
 class TestSampleState:

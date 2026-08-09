@@ -5,7 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from winnow.stopping import StoppingCriterion
+    from .stopping import StoppingCriterion
 
 T = TypeVar("T")
 

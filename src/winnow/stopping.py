@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from winnow.config import default_config
-from winnow.state import SampleStatus
+from .config import default_config
+from .state import SampleStatus
 
 if TYPE_CHECKING:
-    from winnow.state import SampleState
+    from .state import SampleState
 
 _TERMINAL_STATUSES = frozenset({SampleStatus.CONVERGED, SampleStatus.NEEDS_REVIEW})
 

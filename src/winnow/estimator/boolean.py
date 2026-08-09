@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from winnow.estimator.categorical import CategoricalEstimator
+from .categorical import CategoricalEstimator
 
 _BOOLEAN_OPTIONS: frozenset[bool] = frozenset({True, False})
 

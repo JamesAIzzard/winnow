@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
-from winnow.exceptions import ParseFailedError
-from winnow.parser.base import Parser
+from ..exceptions import ParseFailedError
+from .base import Parser
 
 T = TypeVar("T")
 

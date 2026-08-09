@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
+from winnow import (
+    FloatParser,
+    NoEstimate,
+    NumericalEstimator,
+    Prompt,
+    Question,
+    QuestionBank,
+    SampleState,
+    SampleStatus,
+    StoppingCriterion,
+)
 from winnow.config import default_config
-from winnow.estimator.numerical import NumericalEstimator
-from winnow.parser.numerical import FloatParser
-from winnow.question import Prompt, Question
-from winnow.stopping import StoppingCriterion
 
 
 @pytest.fixture
@@ -19,6 +28,21 @@ def sample_question() -> Question[float]:
         ),
         estimator=NumericalEstimator(),
         stopping_criterion=StoppingCriterion(min_samples=5, max_queries=20),
+    )
+
+
+def _question(
+    *,
+    uid: str,
+    query: str,
+    parser: Any,
+    estimator: Any,
+    stopping_criterion: StoppingCriterion,
+) -> Question[Any]:
+    return Question(
+        prompt=Prompt(uid=uid, query=query, parser=parser),
+        estimator=estimator,
+        stopping_criterion=stopping_criterion,
     )
 
 
@@ -63,3 +87,102 @@ class TestQuestionComposition:
     ) -> None:
         """Verify question remains a pure sampling value."""
         assert not hasattr(sample_question, "log_exchange")
+
+
+class TestSelectWave:
+    def test_selects_up_to_wave_size(self) -> None:
+        """Verify select_wave returns at most wave_size questions."""
+        bank = QuestionBank(
+            [
+                _question(
+                    uid=f"q{i}",
+                    query=f"Question {i}?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=3),
+                )
+                for i in range(5)
+            ]
+        )
+
+        states = {
+            f"q{i}": SampleState(
+                samples=(),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=NoEstimate,
+                current_confidence=0.0,
+                status=SampleStatus.PENDING,
+                failure_reason=None,
+            )
+            for i in range(5)
+        }
+
+        wave = bank.select_wave(states, wave_size=3)
+
+        assert len(wave) == 3
+
+    def test_returns_empty_when_all_complete(self) -> None:
+        """Verify select_wave returns empty tuple when no questions remain."""
+        bank = QuestionBank(
+            [
+                _question(
+                    uid="q0",
+                    query="Question?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=1),
+                ),
+            ]
+        )
+
+        states = {
+            "q0": SampleState(
+                samples=(31.0,),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=31.0,
+                current_confidence=1.0,
+                status=SampleStatus.CONVERGED,
+                failure_reason=None,
+            ),
+        }
+
+        wave = bank.select_wave(states, wave_size=5)
+
+        assert wave == ()
+
+    def test_no_duplicate_questions_in_wave(self) -> None:
+        """Verify each question appears at most once per wave."""
+        bank = QuestionBank(
+            [
+                _question(
+                    uid="q0",
+                    query="Question?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=3),
+                ),
+            ]
+        )
+
+        states = {
+            "q0": SampleState(
+                samples=(),
+                decline_count=0,
+                parse_failure_count=0,
+                consecutive_declines=0,
+                current_estimate=NoEstimate,
+                current_confidence=0.0,
+                status=SampleStatus.PENDING,
+                failure_reason=None,
+            ),
+        }
+
+        # wave_size=5 but only 1 question, should get 1 not 5
+        wave = bank.select_wave(states, wave_size=5)
+
+        assert len(wave) == 1
+        assert wave[0].uid == "q0"

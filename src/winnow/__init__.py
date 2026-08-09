@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 # Main entry point
-from winnow.collect import collect
+from .collect import collect
 
 # Estimator package
-from winnow.estimator import (
+from .estimator import (
     BooleanEstimator,
     CategoricalEstimator,
     Estimator,
@@ -16,7 +16,7 @@ from winnow.estimator import (
 )
 
 # Exceptions
-from winnow.exceptions import (
+from .exceptions import (
     EstimationFailedError,
     ModelDeclinedError,
     ParseFailedError,
@@ -25,11 +25,11 @@ from winnow.exceptions import (
 )
 
 # Exchange boundary
-from winnow.exchange.client import LLMClient
-from winnow.exchange.logging import configure_jsonl_logging
+from .exchange.client import LLMClient
+from .exchange.logging import configure_jsonl_logging
 
 # Parser package
-from winnow.parser import (
+from .parser import (
     BooleanParser,
     FloatLiteralPairParser,
     FloatParser,
@@ -39,14 +39,14 @@ from winnow.parser import (
 )
 
 # Question system
-from winnow.question import Prompt, Question, QuestionBank
+from .question import Prompt, Question, QuestionBank
 
 # Core types
-from winnow.results import Estimate, NeedsReview
-from winnow.state import NoEstimate, ReviewReason, SampleState, SampleStatus
+from .results import Estimate, NeedsReview
+from .state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
 # Stopping criterion
-from winnow.stopping import StoppingCriterion
+from .stopping import StoppingCriterion
 
 __all__ = [
     "BooleanEstimator",

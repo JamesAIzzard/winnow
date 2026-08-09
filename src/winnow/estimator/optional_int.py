@@ -6,7 +6,7 @@ from .base import Estimator
 from .statistics import mad, median
 
 if TYPE_CHECKING:
-    from winnow.state import SampleState
+    from ..state import SampleState
 
 
 class OptionalIntEstimator(Estimator[int | None]):
