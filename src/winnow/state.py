@@ -1,47 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from enum import Enum
-from typing import TYPE_CHECKING, Final, Generic, TypeVar
+from enum import Enum, auto
+from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from .stopping import StoppingCriterion
 
-T = TypeVar("T")
 
-
-class _NoEstimateType:
-    """Sentinel type for `NoEstimate`; compare with `is NoEstimate`.
-
-    Distinct from `None`, which can be a legitimate estimate value
-    (e.g. `OptionalBoundedIntParser` where `None` means 'not applicable').
-    """
-
-
-NoEstimate: Final = _NoEstimateType()
-"""Sentinel value indicating no estimate has been computed yet."""
-
-
-class SampleStatus(Enum):
-    """Explicit lifecycle status of a sampling question."""
-
-    PENDING = "pending"
-    COLLECTING = "collecting"
-    CONVERGED = "converged"
-    NEEDS_REVIEW = "needs_review"
-
-
-class ReviewReason(Enum):
-    """Reasons why estimation failed and manual review is required."""
-
-    MAX_CONSECUTIVE_DECLINES = "max_consecutive_declines"
-    MAX_PARSE_FAILURES = "max_parse_failures"
-    MAX_QUERIES = "max_queries"
-    INSUFFICIENT_CONFIDENCE = "insufficient_confidence"
-
-
-@dataclass(frozen=True)
-class SampleState(Generic[T]):
+@dataclass(frozen=True, kw_only=True)
+class SampleState[T]:
     """Current sampling state for a single question."""
 
     samples: tuple[T, ...]
@@ -143,3 +111,40 @@ class SampleState(Generic[T]):
         if len(self.samples) == 0:
             return ReviewReason.MAX_QUERIES
         return ReviewReason.INSUFFICIENT_CONFIDENCE
+
+
+class SampleStatus(Enum):
+    """Explicit lifecycle status of a sampling question."""
+
+    PENDING = "pending"
+    COLLECTING = "collecting"
+    CONVERGED = "converged"
+    NEEDS_REVIEW = "needs_review"
+
+
+class ReviewReason(Enum):
+    """Reasons why estimation failed and manual review is required."""
+
+    MAX_CONSECUTIVE_DECLINES = "max_consecutive_declines"
+    MAX_PARSE_FAILURES = "max_parse_failures"
+    MAX_QUERIES = "max_queries"
+    INSUFFICIENT_CONFIDENCE = "insufficient_confidence"
+
+
+class _NoEstimateType(Enum):
+    """Sentinel type for `NoEstimate`; compare with `is NoEstimate`.
+
+    Distinct from `None`, which can be a legitimate estimate value
+    (e.g. `OptionalBoundedIntParser` where `None` means 'not applicable').
+
+    Defined as a single-member enum so that type checkers can narrow
+    `T | _NoEstimateType` on an `is NoEstimate` comparison. A plain class
+    cannot be narrowed, because nothing tells the checker it has only
+    one instance.
+    """
+
+    TOKEN = auto()
+
+
+NoEstimate: Final = _NoEstimateType.TOKEN
+"""Sentinel value indicating no estimate has been computed yet."""

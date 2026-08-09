@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING
 
 from .config import default_config
 
@@ -12,60 +12,6 @@ if TYPE_CHECKING:
     from .parser.base import Parser
     from .state import SampleState
     from .stopping import StoppingCriterion
-
-T = TypeVar("T")
-
-@dataclass(frozen=True)
-class Prompt(Generic[T]):
-    """A query paired with the parser needed to interpret one response."""
-
-    uid: str
-    query: str
-    parser: Parser[T]
-
-    def build_prompt(self) -> str:
-        """Return the full prompt with the decline instruction appended."""
-        decline_instruction = (
-            f"If you have insufficient information to answer, "
-            f"respond with only: {default_config.decline_keyword}"
-        )
-        return f"{self.query}\n\n{decline_instruction}"
-
-
-@dataclass(frozen=True, init=False)
-class Question(Generic[T]):
-    """A prompt paired with its sampling strategy."""
-
-    prompt: Prompt[T]
-    estimator: Estimator[T]
-    stopping_criterion: StoppingCriterion
-
-    def __init__(
-        self,
-        *,
-        prompt: Prompt[T],
-        estimator: Estimator[T],
-        stopping_criterion: StoppingCriterion,
-    ) -> None:
-        object.__setattr__(self, "prompt", prompt)
-        object.__setattr__(self, "estimator", estimator)
-        object.__setattr__(self, "stopping_criterion", stopping_criterion)
-
-    @property
-    def uid(self) -> str:
-        return self.prompt.uid
-
-    @property
-    def query(self) -> str:
-        return self.prompt.query
-
-    @property
-    def parser(self) -> Parser[T]:
-        return self.prompt.parser
-
-    def build_prompt(self) -> str:
-        """Return the full prompt for this question."""
-        return self.prompt.build_prompt()
 
 
 class QuestionBank:
@@ -147,3 +93,50 @@ class QuestionBank:
                 break
             selected.append(question)
         return tuple(selected)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Question[T]:
+    """A prompt paired with its sampling strategy."""
+
+    prompt: Prompt[T]
+    estimator: Estimator[T]
+    stopping_criterion: StoppingCriterion
+
+    @property
+    def uid(self) -> str:
+        return self.prompt.uid
+
+    @property
+    def query(self) -> str:
+        return self.prompt.query
+
+    @property
+    def parser(self) -> Parser[T]:
+        return self.prompt.parser
+
+    def build_prompt(self) -> str:
+        """Return the full prompt for this question."""
+        return self.prompt.build_prompt()
+
+
+@dataclass(frozen=True, kw_only=True)
+class Prompt[T]:
+    """A query paired with the parser needed to interpret one response."""
+
+    uid: str
+    query: str
+    parser: Parser[T]
+
+    def build_prompt(self) -> str:
+        """Return the full prompt with the decline instruction appended."""
+        decline_instruction = (
+            f"If you have insufficient information to answer, "
+            f"respond with only: {default_config.decline_keyword}"
+        )
+        return f"{self.query}\n\n{decline_instruction}"
+
+
+
+
+

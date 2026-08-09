@@ -21,7 +21,7 @@ class LLMClient(Protocol):
     async def __call__(self, prompt: str) -> str: ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ExchangeRecordingClient:
     """Execute queries and record their completed exchanges."""
 

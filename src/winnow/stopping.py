@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 _TERMINAL_STATUSES = frozenset({SampleStatus.CONVERGED, SampleStatus.NEEDS_REVIEW})
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class StoppingCriterion:
     """Determines when sampling should stop for a question.
 
