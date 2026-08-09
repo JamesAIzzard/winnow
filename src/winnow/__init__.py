@@ -38,10 +38,14 @@ from .parser import (
     Parser,
 )
 
-# Question system
-from .question import Prompt, Question, QuestionBank
-
-# Core types
+# Core model
+from .progress import (
+    CollectionProgress,
+    ProgressCallback,
+    QuestionInteraction,
+    SampleStates,
+)
+from .question import Prompt, Question, QuestionBank, QuestionUID
 from .results import Estimate, NeedsReview
 from .state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
@@ -52,6 +56,7 @@ __all__ = [
     "BooleanEstimator",
     "BooleanParser",
     "CategoricalEstimator",
+    "CollectionProgress",
     "Estimate",
     "EstimationFailedError",
     "Estimator",
@@ -68,11 +73,15 @@ __all__ = [
     "OptionalIntEstimator",
     "ParseFailedError",
     "Parser",
+    "ProgressCallback",
     "Prompt",
     "Question",
     "QuestionBank",
+    "QuestionInteraction",
+    "QuestionUID",
     "ReviewReason",
     "SampleState",
+    "SampleStates",
     "SampleStatus",
     "StoppingCriterion",
     "StoppingDecision",

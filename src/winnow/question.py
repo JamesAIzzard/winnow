@@ -14,36 +14,47 @@ if TYPE_CHECKING:
     from .stopping import StoppingCriterion
 
 
+type QuestionUID = str
+
+
 class QuestionBank:
     """A collection of questions to be answered."""
 
     def __init__(self, questions: Sequence[Question]) -> None:
-        self._questions = {q.uid: q for q in questions}
-        self._question_order = [q.uid for q in questions]
-        self._current_question_uid: str | None = None
+        self._questions: dict[QuestionUID, Question] = {
+            q.uid: q for q in questions
+        }
+        self._question_order: list[QuestionUID] = [q.uid for q in questions]
+        self._current_question_uid: QuestionUID | None = None
         self._next_index: int = 0
 
     @property
-    def questions(self) -> dict[str, Question]:
+    def questions(self) -> dict[QuestionUID, Question]:
         """The questions in this bank, keyed by uid."""
         return self._questions
 
     @property
-    def current_question_uid(self) -> str | None:
+    def current_question_uid(self) -> QuestionUID | None:
         """The uid of the current question being asked, or None if complete."""
         return self._current_question_uid
 
-    def num_pending_questions(self, states: dict[str, SampleState]) -> int:
+    def num_pending_questions(
+        self,
+        states: dict[QuestionUID, SampleState],
+    ) -> int:
         """Count questions whose state is not terminal."""
         return sum(not states[q.uid].is_terminal for q in self._questions.values())
 
-    def num_estimated_questions(self, states: dict[str, SampleState]) -> int:
+    def num_estimated_questions(
+        self,
+        states: dict[QuestionUID, SampleState],
+    ) -> int:
         """Count questions whose state is terminal."""
         return sum(states[q.uid].is_terminal for q in self._questions.values())
 
     def select_next(
         self,
-        states: dict[str, SampleState],
+        states: dict[QuestionUID, SampleState],
     ) -> Question | None:
         """Select the next question to ask using round-robin.
 
@@ -66,7 +77,7 @@ class QuestionBank:
 
     def select_wave(
         self,
-        states: dict[str, SampleState],
+        states: dict[QuestionUID, SampleState],
         *,
         wave_size: int,
     ) -> tuple[Question, ...]:
@@ -96,7 +107,7 @@ class Question[T]:
     stopping_criterion: StoppingCriterion
 
     @property
-    def uid(self) -> str:
+    def uid(self) -> QuestionUID:
         return self.prompt.uid
 
     @property
@@ -116,7 +127,7 @@ class Question[T]:
 class Prompt[T]:
     """A query paired with the parser needed to interpret one response."""
 
-    uid: str
+    uid: QuestionUID
     query: str
     parser: Parser[T]
 
