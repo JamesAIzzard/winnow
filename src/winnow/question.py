@@ -34,20 +34,12 @@ class QuestionBank:
         return self._current_question_uid
 
     def num_pending_questions(self, states: dict[str, SampleState]) -> int:
-        """Count questions that have not yet reached their stopping criterion."""
-        return sum(
-            1
-            for q in self._questions.values()
-            if not q.stopping_criterion.should_stop(states[q.uid])
-        )
+        """Count questions whose state is not terminal."""
+        return sum(not states[q.uid].is_terminal for q in self._questions.values())
 
     def num_estimated_questions(self, states: dict[str, SampleState]) -> int:
-        """Count questions that have reached their stopping criterion."""
-        return sum(
-            1
-            for q in self._questions.values()
-            if q.stopping_criterion.should_stop(states[q.uid])
-        )
+        """Count questions whose state is terminal."""
+        return sum(states[q.uid].is_terminal for q in self._questions.values())
 
     def select_next(
         self,
@@ -65,7 +57,7 @@ class QuestionBank:
             self._next_index = (self._next_index + 1) % num_questions
             question = self._questions[uid]
 
-            if not question.stopping_criterion.should_stop(states[uid]):
+            if not states[uid].is_terminal:
                 self._current_question_uid = uid
                 return question
 
@@ -135,8 +127,3 @@ class Prompt[T]:
             f"respond with only: {default_config.decline_keyword}"
         )
         return f"{self.query}\n\n{decline_instruction}"
-
-
-
-
-

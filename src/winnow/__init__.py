@@ -46,7 +46,7 @@ from .results import Estimate, NeedsReview
 from .state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
 # Stopping criterion
-from .stopping import StoppingCriterion
+from .stopping import StoppingCriterion, StoppingDecision
 
 __all__ = [
     "BooleanEstimator",
@@ -75,6 +75,7 @@ __all__ = [
     "SampleState",
     "SampleStatus",
     "StoppingCriterion",
+    "StoppingDecision",
     "UnknownInitialStateError",
     "WinnowError",
     "collect",

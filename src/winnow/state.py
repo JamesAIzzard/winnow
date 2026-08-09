@@ -36,6 +36,11 @@ class SampleState[T]:
             else len(self.samples)
         )
 
+    @property
+    def is_terminal(self) -> bool:
+        """Whether collection has finished for this question."""
+        return self.status in {SampleStatus.CONVERGED, SampleStatus.NEEDS_REVIEW}
+
     def record_sample(
         self,
         value: T,
@@ -78,39 +83,15 @@ class SampleState[T]:
 
     def resolve_status(self, criterion: StoppingCriterion) -> SampleState[T]:
         """Return the state with terminal status applied when stopping."""
-        if not criterion.should_stop(self):
+        decision = criterion.evaluate(self)
+        if decision is None:
             return self
-
-        converged = (
-            self.stopping_sample_count >= criterion.min_samples
-            and self.current_confidence >= criterion.confidence_threshold
-        )
-
-        if converged:
-            return replace(
-                self,
-                status=SampleStatus.CONVERGED,
-                failure_reason=None,
-            )
 
         return replace(
             self,
-            status=SampleStatus.NEEDS_REVIEW,
-            failure_reason=self._determine_failure_reason(criterion),
+            status=decision.status,
+            failure_reason=decision.failure_reason,
         )
-
-    def _determine_failure_reason(
-        self,
-        criterion: StoppingCriterion,
-    ) -> ReviewReason:
-        """Determine why estimation failed for a question."""
-        if self.consecutive_declines >= criterion.max_consecutive_declines:
-            return ReviewReason.MAX_CONSECUTIVE_DECLINES
-        if self.parse_failure_count >= criterion.max_parse_failures:
-            return ReviewReason.MAX_PARSE_FAILURES
-        if len(self.samples) == 0:
-            return ReviewReason.MAX_QUERIES
-        return ReviewReason.INSUFFICIENT_CONFIDENCE
 
 
 class SampleStatus(Enum):

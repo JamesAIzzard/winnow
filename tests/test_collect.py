@@ -544,6 +544,43 @@ class TestCollectInitialStates:
         # Only fat was queried (3 samples), protein was skipped
         assert query_count == 3
 
+    def test_resolves_non_terminal_initial_states_before_selection(self) -> None:
+        async def query_fn(prompt: str) -> str:
+            raise AssertionError(f"Unexpected query: {prompt}")
+
+        bank = QuestionBank(
+            [
+                _question(
+                    uid="protein",
+                    query="How many grams of protein?",
+                    parser=FloatParser(),
+                    estimator=NumericalEstimator(),
+                    stopping_criterion=StoppingCriterion(min_samples=3),
+                ),
+            ]
+        )
+        cached_protein = SampleState(
+            samples=(31.0, 31.0, 31.0),
+            decline_count=0,
+            parse_failure_count=0,
+            consecutive_declines=0,
+            current_estimate=31.0,
+            current_confidence=1.0,
+            status=SampleStatus.COLLECTING,
+            failure_reason=None,
+        )
+
+        results = asyncio.run(
+            collect(
+                bank=bank,
+                query_fn=query_fn,
+                initial_states={"protein": cached_protein},
+            )
+        )
+
+        assert isinstance(results["protein"], Estimate)
+        assert results["protein"].value == 31.0
+
     def test_skips_needs_review_initial_states(self) -> None:
         """Verify NEEDS_REVIEW initial states are not re-queried."""
         query_count = 0

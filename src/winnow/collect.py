@@ -73,7 +73,7 @@ def _initialise_states(
             initial_states[q.uid]
             if initial_states is not None and q.uid in initial_states
             else _make_empty_state()
-        )
+        ).resolve_status(q.stopping_criterion)
         for q in bank.questions.values()
     }
 
@@ -171,10 +171,13 @@ def _build_estimates(
                 value=state.current_estimate,
                 confidence=state.current_confidence,
             )
-        else:
-            assert state.status is SampleStatus.NEEDS_REVIEW
-            assert state.failure_reason is not None
+        elif (
+            state.status is SampleStatus.NEEDS_REVIEW
+            and state.failure_reason is not None
+        ):
             results[q.uid] = NeedsReview(reason=state.failure_reason)
+        else:
+            raise RuntimeError(f"Question '{q.uid}' ended in an incomplete state")
 
     return results
 
