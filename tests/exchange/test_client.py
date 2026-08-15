@@ -6,9 +6,11 @@ from typing import Any
 import pytest
 
 from winnow import QuestionInteraction
+from winnow.estimator.numerical import NumericalEstimator
 from winnow.exchange.client import ExchangeRecordingClient
 from winnow.parser.numerical import FloatParser
-from winnow.question import Prompt
+from winnow.question import Question
+from winnow.stopping import StoppingCriterion
 
 
 class TestExchangeRecordingClient:
@@ -29,11 +31,17 @@ class TestExchangeRecordingClient:
             record_exchange,
         )
         client = ExchangeRecordingClient(query_fn=query_fn)
-        prompt = Prompt(uid="protein", query="prompt body", parser=FloatParser())
+        question = Question(
+            uid="protein",
+            query="prompt body",
+            parser=FloatParser(),
+            estimator=NumericalEstimator(),
+            stopping_criterion=StoppingCriterion(),
+        )
 
-        interaction = asyncio.run(client.query_prompt(prompt))
+        interaction = asyncio.run(client.query_question(question))
 
-        prompt_body = prompt.build_prompt()
+        prompt_body = question.build_prompt()
         assert interaction == QuestionInteraction(
             question_uid="protein",
             prompt=prompt_body,

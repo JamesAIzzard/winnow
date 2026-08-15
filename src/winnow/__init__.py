@@ -45,7 +45,7 @@ from .progress import (
     QuestionInteraction,
     SampleStates,
 )
-from .question import Prompt, Question, QuestionBank, QuestionUID
+from .question import Question, QuestionBank, QuestionUID
 from .results import Estimate, NeedsReview
 from .state import NoEstimate, ReviewReason, SampleState, SampleStatus
 
@@ -74,7 +74,6 @@ __all__ = [
     "ParseFailedError",
     "Parser",
     "ProgressCallback",
-    "Prompt",
     "Question",
     "QuestionBank",
     "QuestionInteraction",

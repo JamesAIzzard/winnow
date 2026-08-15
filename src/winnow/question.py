@@ -100,36 +100,13 @@ class QuestionBank:
 
 @dataclass(frozen=True, kw_only=True)
 class Question[T]:
-    """A prompt paired with its sampling strategy."""
-
-    prompt: Prompt[T]
-    estimator: Estimator[T]
-    stopping_criterion: StoppingCriterion
-
-    @property
-    def uid(self) -> QuestionUID:
-        return self.prompt.uid
-
-    @property
-    def query(self) -> str:
-        return self.prompt.query
-
-    @property
-    def parser(self) -> Parser[T]:
-        return self.prompt.parser
-
-    def build_prompt(self) -> str:
-        """Return the full prompt for this question."""
-        return self.prompt.build_prompt()
-
-
-@dataclass(frozen=True, kw_only=True)
-class Prompt[T]:
-    """A query paired with the parser needed to interpret one response."""
+    """The complete definition of one typed sampling task."""
 
     uid: QuestionUID
     query: str
     parser: Parser[T]
+    estimator: Estimator[T]
+    stopping_criterion: StoppingCriterion
 
     def build_prompt(self) -> str:
         """Return the full prompt with the decline instruction appended."""

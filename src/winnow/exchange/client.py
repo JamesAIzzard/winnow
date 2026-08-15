@@ -9,7 +9,7 @@ from ..progress import QuestionInteraction
 from .logging import record_exchange
 
 if TYPE_CHECKING:
-    from ..question import Prompt
+    from ..question import Question
 
 
 T = TypeVar("T")
@@ -28,11 +28,11 @@ class ExchangeRecordingClient:
 
     query_fn: LLMClient
 
-    async def query_prompt(self, prompt: Prompt[T]) -> QuestionInteraction:
-        prompt_body = prompt.build_prompt()
+    async def query_question(self, question: Question[T]) -> QuestionInteraction:
+        prompt_body = question.build_prompt()
         raw_response = await self.query_fn(prompt_body)
         interaction = QuestionInteraction(
-            question_uid=prompt.uid,
+            question_uid=question.uid,
             prompt=prompt_body,
             raw_response=raw_response,
         )

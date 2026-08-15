@@ -38,7 +38,7 @@ async def collect(
             break
 
         interactions = await asyncio.gather(
-            *(exchange_client.query_prompt(q.prompt) for q in wave),
+            *(exchange_client.query_question(q) for q in wave),
         )
 
         for question, interaction in zip(wave, interactions):

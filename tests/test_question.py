@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 
 from winnow import (
     FloatParser,
     NoEstimate,
     NumericalEstimator,
-    Prompt,
     Question,
     QuestionBank,
     SampleState,
@@ -21,66 +18,43 @@ from winnow.config import default_config
 @pytest.fixture
 def sample_question() -> Question[float]:
     return Question(
-        prompt=Prompt(
-            uid="protein",
-            query="How many grams of protein in 100g of chicken breast?",
-            parser=FloatParser(),
-        ),
+        uid="protein",
+        query="How many grams of protein in 100g of chicken breast?",
+        parser=FloatParser(),
         estimator=NumericalEstimator(),
         stopping_criterion=StoppingCriterion(min_samples=5, max_queries=20),
     )
 
 
-def _question(
-    *,
-    uid: str,
-    query: str,
-    parser: Any,
-    estimator: Any,
-    stopping_criterion: StoppingCriterion,
-) -> Question[Any]:
-    return Question(
-        prompt=Prompt(uid=uid, query=query, parser=parser),
-        estimator=estimator,
-        stopping_criterion=stopping_criterion,
-    )
-
-
-class TestPromptBuildPrompt:
-    def test_includes_query(self) -> None:
+class TestQuestionBuildPrompt:
+    def test_includes_query(self, sample_question: Question[float]) -> None:
         """Verify the built prompt contains the original query string."""
-        source = Prompt(
-            uid="protein",
-            query="How many grams of protein in 100g of chicken breast?",
-            parser=FloatParser(),
-        )
+        prompt = sample_question.build_prompt()
 
-        prompt = source.build_prompt()
+        assert sample_question.query in prompt
 
-        assert source.query in prompt
-
-    def test_includes_decline_instruction(self) -> None:
+    def test_includes_decline_instruction(
+        self, sample_question: Question[float],
+    ) -> None:
         """Verify the built prompt instructs the model how to decline."""
-        source = Prompt(
-            uid="protein",
-            query="How many grams of protein in 100g of chicken breast?",
-            parser=FloatParser(),
-        )
-
-        prompt = source.build_prompt()
+        prompt = sample_question.build_prompt()
 
         assert default_config.decline_keyword in prompt
         assert "insufficient information" in prompt.lower()
 
 
-class TestQuestionComposition:
-    def test_delegates_prompt_fields(self, sample_question: Question[float]) -> None:
-        """Verify question exposes prompt fields through composition."""
+class TestQuestionSurface:
+    def test_owns_its_sampling_definition(
+        self, sample_question: Question[float],
+    ) -> None:
+        """Verify a question holds identity, query, parser and strategy directly."""
         assert sample_question.uid == "protein"
         assert sample_question.query == (
             "How many grams of protein in 100g of chicken breast?"
         )
         assert isinstance(sample_question.parser, FloatParser)
+        assert isinstance(sample_question.estimator, NumericalEstimator)
+        assert sample_question.stopping_criterion.min_samples == 5
 
     def test_has_no_exchange_logging_method(
         self, sample_question: Question[float],
@@ -94,7 +68,7 @@ class TestSelectWave:
         """Verify select_wave returns at most wave_size questions."""
         bank = QuestionBank(
             [
-                _question(
+                Question(
                     uid=f"q{i}",
                     query=f"Question {i}?",
                     parser=FloatParser(),
@@ -127,7 +101,7 @@ class TestSelectWave:
         """Verify select_wave returns empty tuple when no questions remain."""
         bank = QuestionBank(
             [
-                _question(
+                Question(
                     uid="q0",
                     query="Question?",
                     parser=FloatParser(),
@@ -158,7 +132,7 @@ class TestSelectWave:
         """Verify each question appears at most once per wave."""
         bank = QuestionBank(
             [
-                _question(
+                Question(
                     uid="q0",
                     query="Question?",
                     parser=FloatParser(),
