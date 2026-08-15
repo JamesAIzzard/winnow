@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar
-
 from ..exceptions import ParseFailedError
 from .base import Parser
 
-T = TypeVar("T")
 
-
-class LiteralParser(Parser[T], Generic[T]):
+class LiteralParser[T](Parser[T]):
     """Parses a response matching one of a known set of values."""
 
     def __init__(

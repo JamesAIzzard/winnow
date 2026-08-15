@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 
 from ..config import default_config
 from ..exceptions import ModelDeclinedError
 
-T = TypeVar("T")
 
-
-class Parser(ABC, Generic[T]):
+class Parser[T](ABC):
     """Base class for parsers that convert LLM responses into typed values.
 
     Subclasses must implement the `parse` method. The `__call__` method handles
