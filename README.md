@@ -14,7 +14,6 @@ from winnow import (
     FloatParser,
     NeedsReview,
     NumericalEstimator,
-    Prompt,
     Question,
     QuestionBank,
     StoppingCriterion,
@@ -30,11 +29,9 @@ async def query_llm(prompt: str) -> str:
 async def main() -> None:
     bank = QuestionBank([
         Question(
-            prompt=Prompt(
-                uid="protein",
-                query="How many grams of protein are in 100g of chicken breast?",
-                parser=FloatParser(),
-            ),
+            uid="protein",
+            query="How many grams of protein are in 100g of chicken breast?",
+            parser=FloatParser(),
             estimator=NumericalEstimator(),
             stopping_criterion=StoppingCriterion(),
         ),
@@ -52,7 +49,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-Each question combines a `Prompt`, parser, estimator and `StoppingCriterion`. `collect()` returns an `Estimate` when sampling converges or `NeedsReview` when it stops without sufficient confidence.
+Each `Question` owns its uid, query, parser, estimator and `StoppingCriterion`. `collect()` returns an `Estimate` when sampling converges or `NeedsReview` when it stops without sufficient confidence.
 
 ## Available Components
 

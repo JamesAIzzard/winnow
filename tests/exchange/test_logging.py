@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from winnow.exchange.logging import record_exchange, configure_jsonl_logging
+from winnow.exchange.logging import configure_jsonl_logging, record_exchange
 
 
 @pytest.fixture

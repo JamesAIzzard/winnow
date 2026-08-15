@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from winnow.estimator.categorical import CategoricalEstimator
 

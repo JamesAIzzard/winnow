@@ -1,6 +1,6 @@
 [project]
 name = "winnow"
-version = "0.2.0"
+version = "0.3.0"
 description = "Statistically robust data extraction from large language models."
 authors = [
     {name = "James Izzard", email = "jamesaizzard@gmail.com"}
@@ -30,6 +30,6 @@ build-backend = "hatchling.build"
 packages = ["src/winnow"]
 
 [tool.pyright]
-venvPath = ".."
+venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"
